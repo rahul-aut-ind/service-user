@@ -1,0 +1,94 @@
+linters-settings:
+  govet:
+    check-shadowing: true
+  gocyclo:
+    min-complexity: 10
+  dupl:
+    threshold: 100
+  goconst:
+    min-len: 2
+    min-occurrences: 2
+  misspell:
+    locale: US
+  lll:
+    line-length: 140
+  goimports:
+    local-prefixes: github.com/golangci/golangci-lint
+  gocritic:
+    enabled-tags:
+      - performance
+      - style
+      - experimental
+    disabled-checks:
+      - dupImport # https://github.com/go-critic/go-critic/issues/845
+      - ifElseChain
+      - octalLiteral
+      - wrapperFunc
+      - commentedOutCode
+      - hugeParam
+      - rangeValCopy
+      - typeDefFirst
+      - paramTypeCombine
+
+issues:
+  exclude-rules:
+    - text: "not declared by package utf8"
+      linters:
+        - typecheck
+    - text: "unicode/utf8/utf8.go"
+      linters:
+        - typecheck
+    - path: _test.go
+      linters:
+        - funlen
+    - path: swagger.go
+      linters:
+        - unused
+        - gofmt
+
+linters:
+  enable:
+    - errcheck
+    - staticcheck
+    - unused
+    - gosimple
+    - structcheck
+    - ineffassign
+    - typecheck
+    - megacheck
+    - govet
+    - gocyclo
+    - gosec
+    - unconvert
+    - dupl
+    - nakedret
+    - prealloc
+    - exportloopref
+    - gocritic
+    - bodyclose
+    - stylecheck
+    - gosec
+    - revive
+    - unconvert
+    - dupl
+    - goconst
+    - gocyclo
+    - goimports
+    - misspell
+    - unparam
+    - nakedret
+    - prealloc
+    - gocritic
+    - gochecknoinits
+    - funlen
+
+service:
+  golangci-lint-version: 1.61.x
+  prepare:
+    - make deps
+    - make generate
+
+run:
+  skip-files:
+    - swagger.go
+    - _test.go
