@@ -83,7 +83,7 @@ linters:
     - funlen
 
 service:
-  golangci-lint-version: 1.61.x
+  golangci-lint-version: 1.60.x
   prepare:
     - make deps
     - make generate
