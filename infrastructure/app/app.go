@@ -23,5 +23,8 @@ func newApp(r *routes.Routes, env *config.Env, l *logger.Logger, e *gin.Engine) 
 func (a *App) Start() {
 
 	a.route.Setup()
-	a.engine.Run(fmt.Sprintf("%s:%s", a.env.ServerHost, a.env.ServerPort))
+	err := a.engine.Run(fmt.Sprintf("%s:%s", a.env.ServerHost, a.env.ServerPort))
+	if err != nil {
+		a.log.Fatalf("could not start the server | err :: %v", err)
+	}
 }

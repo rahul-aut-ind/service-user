@@ -1,6 +1,12 @@
 # service-user
 
-### running the service in local
+### project setup
+
+#### Prerequisites
+
+- Go 1.20+
+- Docker
+- MySQL
 
 download dependencies `go mod download`
 

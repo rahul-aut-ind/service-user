@@ -24,7 +24,6 @@ func New() *Logger {
 	var logger *zap.Logger
 
 	logger, _ = zap.NewDevelopment()
-	defer logger.Sync()
 	sugarLogger := logger.Sugar()
 
 	return &Logger{sugarLogger}

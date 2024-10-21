@@ -36,7 +36,7 @@ type (
 )
 
 var (
-	userIDRegExp = regexp.MustCompile(`^[0-9]+$`)
+	userIDRegExp = regexp.MustCompile(`^\d+$`)
 )
 
 func New(s userservice.IService, l *logger.Logger) *Controller {

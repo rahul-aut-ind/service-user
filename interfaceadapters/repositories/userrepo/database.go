@@ -37,7 +37,10 @@ func connect(dsn string) *gorm.DB {
 	}
 
 	// Auto-migrate the User model
-	db.AutoMigrate(&models.User{})
+	err = db.AutoMigrate(&models.User{})
+	if err != nil {
+		panic(fmt.Sprintf("could not initialize tables | err :: %v", err))
+	}
 
 	return db
 }
@@ -58,9 +61,8 @@ func (repo *MysqlRepository) FindRecord(id string) (*models.User, error) {
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("err :: %v", gorm.ErrRecordNotFound)
-		} else {
-			return nil, fmt.Errorf("err :: %v", result.Error)
 		}
+		return nil, fmt.Errorf("err :: %v", result.Error)
 	}
 	return &user, nil
 }
