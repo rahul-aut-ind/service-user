@@ -34,10 +34,12 @@ func (r *Routes) Setup() {
 		// create user
 		POST("", func(c *gin.Context) { r.controller.CreateUser(c) }).
 		// Query specific
-		GET("/:id", func(c *gin.Context) { r.controller.FindUser(c) })
-	// // update by id
-	// PUT("/:id", func(c *gin.Context) { r.controller.UpdateUser(c) }).
-	// // delete by id
-	// DELETE("/:id", func(c *gin.Context) { r.controller.DeleteUser(c) })
+		GET("/:id", func(c *gin.Context) { r.controller.FindUser(c) }).
+		// Query all users
+		GET("", func(c *gin.Context) { r.controller.FindAllUsers(c) }).
+		// update by id
+		PUT("/:id", func(c *gin.Context) { r.controller.UpdateUser(c) }).
+		// delete by id
+		DELETE("/:id", func(c *gin.Context) { r.controller.DeleteUser(c) })
 
 }

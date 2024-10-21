@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"github.com/rahul-aut-ind/service-user/domain/errors"
 	"github.com/rahul-aut-ind/service-user/domain/logger"
@@ -14,15 +15,15 @@ import (
 type (
 	IController interface {
 		FindUser(c Context)
-		// FindAllUsers(c Context)
+		FindAllUsers(c Context)
 		CreateUser(c Context)
-		// UpdateUser(c Context)
-		// DeleteUser(c Context)
+		UpdateUser(c Context)
+		DeleteUser(c Context)
 	}
 
 	Controller struct {
-		Service userservice.IService
-		Log     *logger.Logger
+		service userservice.IService
+		log     *logger.Logger
 	}
 
 	Context interface {
@@ -38,10 +39,10 @@ var (
 	userIDRegExp = regexp.MustCompile(`^[0-9]+$`)
 )
 
-func New(s userservice.IService, log *logger.Logger) *Controller {
+func New(s userservice.IService, l *logger.Logger) *Controller {
 	return &Controller{
-		Service: s,
-		Log:     log,
+		service: s,
+		log:     l,
 	}
 }
 
@@ -54,7 +55,7 @@ func (uc *Controller) CreateUser(c Context) {
 		return
 	}
 
-	user, err := uc.Service.Add(newUser)
+	user, err := uc.service.Add(newUser)
 	if err != nil {
 		uc.handleError(c, errors.New(errors.ErrCodeGeneric, fmt.Errorf("error :: %v", err)))
 		return
@@ -69,9 +70,68 @@ func (uc *Controller) FindUser(c Context) {
 		return
 	}
 
-	user, err := uc.Service.Find(userID)
+	user, err := uc.service.Get(userID)
 	if err != nil {
+		if strings.Contains(err.Error(), models.ErrMsgNoUserfound) {
+			uc.handleError(c, errors.New(errors.ErrCodeNoUser, fmt.Errorf("error :: %v", err)))
+			return
+		}
+		uc.handleError(c, errors.New(errors.ErrCodeNoUser, fmt.Errorf("error :: %v", err)))
+		return
+	}
+	c.JSON(http.StatusOK, &models.Response{Data: user})
+}
+
+func (uc *Controller) DeleteUser(c Context) {
+	userID := c.Param("id")
+	if !(userIDRegExp.MatchString(userID)) {
+		uc.handleError(c, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("bad request")))
+		return
+	}
+
+	err := uc.service.Delete(userID)
+	if err != nil {
+		if strings.Contains(err.Error(), models.ErrMsgNoUserfound) {
+			uc.handleError(c, errors.New(errors.ErrCodeNoUser, fmt.Errorf("error :: %v", err)))
+			return
+		}
 		uc.handleError(c, errors.New(errors.ErrCodeGeneric, fmt.Errorf("error :: %v", err)))
+		return
+	}
+	c.JSON(http.StatusAccepted, &models.Response{Data: models.RequestAccepted})
+}
+
+func (uc *Controller) UpdateUser(c Context) {
+	userID := c.Param("id")
+	if !(userIDRegExp.MatchString(userID)) {
+		uc.handleError(c, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("bad request")))
+		return
+	}
+
+	updatedUserInfo := &models.User{}
+
+	err := c.ShouldBindJSON(updatedUserInfo)
+	if err != nil {
+		uc.handleError(c, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("bad request. Err :: %v", err)))
+		return
+	}
+
+	user, err := uc.service.Update(userID, updatedUserInfo)
+	if err != nil {
+		if strings.Contains(err.Error(), models.ErrMsgNoUserfound) {
+			uc.handleError(c, errors.New(errors.ErrCodeNoUser, fmt.Errorf("error :: %v", err)))
+			return
+		}
+		uc.handleError(c, errors.New(errors.ErrCodeNoUser, fmt.Errorf("error :: %v", err)))
+		return
+	}
+	c.JSON(http.StatusOK, &models.Response{Data: user})
+}
+
+func (uc *Controller) FindAllUsers(c Context) {
+	user, err := uc.service.GetAll()
+	if err != nil {
+		uc.handleError(c, errors.New(errors.ErrCodeNoUser, fmt.Errorf("error :: %v", err)))
 		return
 	}
 	c.JSON(http.StatusOK, &models.Response{Data: user})
@@ -84,6 +144,6 @@ func (uc *Controller) handleError(c Context, err error) {
 	} else {
 		apiErr = errors.New(errors.ErrCodeGeneric, err)
 	}
-	uc.Log.Errorf("error :: %v", err)
+	uc.log.Errorf("error :: %v", err)
 	c.JSON(apiErr.HTTPCode(), apiErr)
 }
