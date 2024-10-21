@@ -6,15 +6,24 @@
 
 - Go 1.20+
 - Docker
-- MySQL
+- MySQL 8.0
 
 download dependencies `go mod download`
 
 create a `.env` file taking `.env.example` as reference.
 
-run the service `wire ./... && go run cmd/service-user/main.go`
+run the service from terminal `wire ./... && go run cmd/service-user/main.go`
 
 Quick test from terminal to check service response `curl "localhost:8080/api/v1/users/4"` should yield result after local mysql DB setup and seeding initial data steps listed below is completed.
+
+### unit & integration tests
+
+run in terminal `wire ./... & go test ./...`
+
+### lint check
+
+run in terminal `golangci-lint run`
+make sure to `brew install golangci-lint` before
 
 ### local mysql DB setup
 
@@ -38,7 +47,7 @@ seed data in mysql `source mysql.sql`
 ### test the service
 
 CREATE USER `curl -X POST "localhost:8080/api/v1/users" -d '{"name":"User14","email":"user14@example.com"}'`
-UPDATE USER `curl -X PUT "localhost:8080/api/v1/users/{ID}" -d '{"name":"User14_updated name"'`
+UPDATE USER `curl -X PUT "localhost:8080/api/v1/users/{ID}" -d '{"name":"User14_updated name"}'`
 GET ALL USERS `curl "localhost:8080/api/v1/users"`
 GET SINGLE USER `curl "localhost:8080/api/v1/users/{ID}"`
 DELETE USER `curl -X DELETE "localhost:8080/api/v1/users/{ID}"`

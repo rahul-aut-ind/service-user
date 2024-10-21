@@ -2,12 +2,17 @@ package userrepo
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"time"
 
 	"github.com/rahul-aut-ind/service-user/domain/logger"
 	"github.com/rahul-aut-ind/service-user/domain/models"
 	"github.com/rahul-aut-ind/service-user/internal/config"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	glog "gorm.io/gorm/logger"
+	schema "gorm.io/gorm/schema"
 )
 
 type (
@@ -31,7 +36,7 @@ func New(l *logger.Logger, env *config.Env) *MysqlRepository {
 
 // Connect initializes the database connection
 func connect(dsn string) *gorm.DB {
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(dsn), initConfig())
 	if err != nil {
 		panic(fmt.Sprintf("failed to connect to database :: %v", err))
 	}
@@ -42,7 +47,37 @@ func connect(dsn string) *gorm.DB {
 		panic(fmt.Sprintf("could not initialize tables | err :: %v", err))
 	}
 
+	sqlDB, _ := db.DB()
+	sqlDB.SetMaxIdleConns(5)
+	sqlDB.SetMaxOpenConns(5)
+
 	return db
+}
+
+// initConfig Initialize Config
+func initConfig() *gorm.Config {
+	return &gorm.Config{
+		Logger:         initLog(),
+		NamingStrategy: initNamingStrategy(),
+	}
+}
+
+// initLog Connection Log Configuration
+func initLog() glog.Interface {
+	newLogger := glog.New(log.New(os.Stdout, "\r\n", log.LstdFlags), glog.Config{
+		Colorful:      true,
+		LogLevel:      glog.Info,
+		SlowThreshold: time.Second,
+	})
+	return newLogger
+}
+
+// initNamingStrategy Init NamingStrategy
+func initNamingStrategy() *schema.NamingStrategy {
+	return &schema.NamingStrategy{
+		SingularTable: false,
+		TablePrefix:   "",
+	}
 }
 
 func (repo *MysqlRepository) CreateRecord(u *models.User) (*models.User, error) {
@@ -68,7 +103,7 @@ func (repo *MysqlRepository) FindRecord(id string) (*models.User, error) {
 }
 
 func (repo *MysqlRepository) DeleteRecord(u *models.User) (*models.User, error) {
-	repo.log.Debugf("deleting record with id %s", u.ID)
+	repo.log.Debugf("deleting record with id %d", u.ID)
 	result := repo.db.Delete(&u)
 	if result.Error != nil {
 		return nil, fmt.Errorf("err :: %v", result.Error)
