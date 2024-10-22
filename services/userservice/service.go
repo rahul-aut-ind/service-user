@@ -40,7 +40,7 @@ func (s *Service) Add(user *models.User) (*models.User, error) {
 func (s *Service) Get(id string) (*models.User, error) {
 	res, err := s.db.FindRecord(id)
 	if err != nil {
-		msg := fmt.Sprintf("error %s :: %s", models.ErrMsgNoUserfound, err.Error())
+		msg := fmt.Sprintf("error :: %s", err.Error())
 		s.log.Errorf(msg)
 		return nil, fmt.Errorf("%s", msg)
 	}

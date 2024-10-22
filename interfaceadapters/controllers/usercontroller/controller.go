@@ -76,7 +76,7 @@ func (uc *Controller) FindUser(c Context) {
 			uc.handleError(c, errors.New(errors.ErrCodeNoUser, fmt.Errorf("error :: %v", err)))
 			return
 		}
-		uc.handleError(c, errors.New(errors.ErrCodeNoUser, fmt.Errorf("error :: %v", err)))
+		uc.handleError(c, errors.New(errors.ErrCodeGeneric, fmt.Errorf("error :: %v", err)))
 		return
 	}
 	c.JSON(http.StatusOK, &models.Response{Data: user})

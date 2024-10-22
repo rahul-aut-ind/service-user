@@ -95,7 +95,7 @@ func (repo *MysqlRepository) FindRecord(id string) (*models.User, error) {
 	result := repo.db.Where(id).First(&user)
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("err :: %v", gorm.ErrRecordNotFound)
+			return nil, fmt.Errorf("err :: %v", models.ErrMsgNoUserfound)
 		}
 		return nil, fmt.Errorf("err :: %v", result.Error)
 	}
