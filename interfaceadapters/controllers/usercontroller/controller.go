@@ -1,14 +1,18 @@
 package usercontroller
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/rahul-aut-ind/service-user/domain/errors"
 	"github.com/rahul-aut-ind/service-user/domain/logger"
 	"github.com/rahul-aut-ind/service-user/domain/models"
+	"github.com/rahul-aut-ind/service-user/infrastructure/caching"
 	"github.com/rahul-aut-ind/service-user/services/userservice"
 )
 
@@ -22,6 +26,7 @@ type (
 	}
 
 	Controller struct {
+		rc      caching.CacheHandler
 		service userservice.IService
 		log     *logger.Logger
 	}
@@ -32,6 +37,10 @@ type (
 		GetHeader(key string) string
 		Param(key string) string
 		Query(key string) string
+		Value(key any) any
+		Err() error
+		Done() <-chan struct{}
+		Deadline() (deadline time.Time, ok bool)
 	}
 )
 
@@ -39,8 +48,9 @@ var (
 	userIDRegExp = regexp.MustCompile(`^\d+$`)
 )
 
-func New(s userservice.IService, l *logger.Logger) *Controller {
+func New(rc caching.CacheHandler, s userservice.IService, l *logger.Logger) *Controller {
 	return &Controller{
+		rc:      rc,
 		service: s,
 		log:     l,
 	}
@@ -60,6 +70,11 @@ func (uc *Controller) CreateUser(c Context) {
 		uc.handleError(c, errors.New(errors.ErrCodeGeneric, fmt.Errorf("error :: %v", err)))
 		return
 	}
+	u, _ := json.Marshal(user)
+	err = uc.rc.Set(c, strconv.Itoa(int(user.ID)), string(u), caching.DefaultTTL)
+	if err != nil {
+		uc.log.Warnf("err updating cache :: %s", err)
+	}
 	c.JSON(http.StatusAccepted, &models.Response{Data: user})
 }
 
@@ -70,16 +85,34 @@ func (uc *Controller) FindUser(c Context) {
 		return
 	}
 
-	user, err := uc.service.Get(userID)
+	// check if data exists in redis
+	cachedData, err := uc.rc.Get(c, userID)
 	if err != nil {
-		if strings.Contains(err.Error(), models.ErrMsgNoUserfound) {
-			uc.handleError(c, errors.New(errors.ErrCodeNoUser, fmt.Errorf("error :: %v", err)))
+		uc.log.Debug("cache miss")
+		user, err := uc.service.Get(userID)
+		if err != nil {
+			if strings.Contains(err.Error(), models.ErrMsgNoUserfound) {
+				uc.handleError(c, errors.New(errors.ErrCodeNoUser, fmt.Errorf("error :: %v", err)))
+				return
+			}
+			uc.handleError(c, errors.New(errors.ErrCodeGeneric, fmt.Errorf("error :: %v", err)))
 			return
 		}
-		uc.handleError(c, errors.New(errors.ErrCodeGeneric, fmt.Errorf("error :: %v", err)))
+		u, _ := json.Marshal(user)
+		err = uc.rc.Set(c, userID, string(u), caching.DefaultTTL)
+		if err != nil {
+			uc.log.Warnf("err updating cache :: %s", err)
+		}
+		c.JSON(http.StatusOK, &models.Response{Data: user})
 		return
 	}
-	c.JSON(http.StatusOK, &models.Response{Data: user})
+	uc.log.Debug("serving data from cache..")
+	data := models.User{}
+	err = json.Unmarshal([]byte(cachedData), &data)
+	if err != nil {
+		uc.handleError(c, errors.New(errors.ErrCodeGeneric, fmt.Errorf("error :: %v", err)))
+	}
+	c.JSON(http.StatusOK, &models.Response{Data: &data})
 }
 
 func (uc *Controller) DeleteUser(c Context) {
@@ -97,6 +130,10 @@ func (uc *Controller) DeleteUser(c Context) {
 		}
 		uc.handleError(c, errors.New(errors.ErrCodeGeneric, fmt.Errorf("error :: %v", err)))
 		return
+	}
+	err = uc.rc.Delete(c, userID)
+	if err != nil {
+		uc.log.Warnf("err updating cache :: %s", err)
 	}
 	c.JSON(http.StatusAccepted, &models.Response{Data: models.RequestAccepted})
 }
@@ -124,6 +161,11 @@ func (uc *Controller) UpdateUser(c Context) {
 		}
 		uc.handleError(c, errors.New(errors.ErrCodeNoUser, fmt.Errorf("error :: %v", err)))
 		return
+	}
+	u, _ := json.Marshal(user)
+	err = uc.rc.Set(c, userID, string(u), caching.DefaultTTL)
+	if err != nil {
+		uc.log.Warnf("err updating cache :: %s", err)
 	}
 	c.JSON(http.StatusOK, &models.Response{Data: user})
 }

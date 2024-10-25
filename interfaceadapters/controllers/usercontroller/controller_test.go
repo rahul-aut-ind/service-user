@@ -1,6 +1,7 @@
 package usercontroller
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -8,6 +9,7 @@ import (
 	"github.com/rahul-aut-ind/service-user/domain/errors"
 	"github.com/rahul-aut-ind/service-user/domain/logger"
 	"github.com/rahul-aut-ind/service-user/domain/models"
+	"github.com/rahul-aut-ind/service-user/infrastructure/caching"
 	"github.com/rahul-aut-ind/service-user/mocks"
 	"github.com/rahul-aut-ind/service-user/services/userservice"
 )
@@ -23,14 +25,18 @@ var (
 func TestController_FindUserSuccess(t *testing.T) {
 	repoMoc := new(mocks.DBRepo)
 	contextMoc := new(mocks.Context)
+	cacheMoc := new(mocks.CacheHandler)
 
 	contextMoc.On("Param", "id").Return("1")
 	contextMoc.On("JSON", http.StatusOK, &models.Response{Data: testUserResp})
 
 	testService := userservice.New(repoMoc, logger.New())
-	testContrlr := New(testService, logger.New())
+	testContrlr := New(cacheMoc, testService, logger.New())
 
+	cacheMoc.On("Get", contextMoc, "1").Return("", errors.New("err : %s", fmt.Errorf("no data in cache")))
 	repoMoc.On("FindRecord", "1").Return(testUserResp, nil)
+	u, _ := json.Marshal(testUserResp)
+	cacheMoc.On("Set", contextMoc, "1", string(u), caching.DefaultTTL).Return(nil)
 
 	// When
 	testContrlr.FindUser(contextMoc)
@@ -46,6 +52,7 @@ func TestController_FindUserSuccess(t *testing.T) {
 func TestController_FindUser_NoRecordsErr(t *testing.T) {
 	repoMoc := new(mocks.DBRepo)
 	contextMoc := new(mocks.Context)
+	cacheMoc := new(mocks.CacheHandler)
 
 	contextMoc.On("Param", "id").Return("9999")
 
@@ -55,8 +62,9 @@ func TestController_FindUser_NoRecordsErr(t *testing.T) {
 	contextMoc.On("JSON", http.StatusNotFound, respErr)
 
 	testService := userservice.New(repoMoc, logger.New())
-	testContrlr := New(testService, logger.New())
+	testContrlr := New(cacheMoc, testService, logger.New())
 
+	cacheMoc.On("Get", contextMoc, "9999").Return("", fmt.Errorf("no data in cache"))
 	repoMoc.On("FindRecord", "9999").Return(nil, repoFindErr)
 
 	// When
@@ -73,6 +81,7 @@ func TestController_FindUser_NoRecordsErr(t *testing.T) {
 func TestController_FindUser_RegexBadReq(t *testing.T) {
 	repoMoc := new(mocks.DBRepo)
 	contextMoc := new(mocks.Context)
+	cacheMoc := new(mocks.CacheHandler)
 
 	// param doesn't match regex
 	contextMoc.On("Param", "id").Return("-1")
@@ -82,7 +91,7 @@ func TestController_FindUser_RegexBadReq(t *testing.T) {
 	contextMoc.On("JSON", http.StatusBadRequest, respErr)
 
 	testService := userservice.New(repoMoc, logger.New())
-	testContrlr := New(testService, logger.New())
+	testContrlr := New(cacheMoc, testService, logger.New())
 
 	// When
 	testContrlr.FindUser(contextMoc)
@@ -98,6 +107,7 @@ func TestController_FindUser_RegexBadReq(t *testing.T) {
 func TestController_FindUser_RepoErr(t *testing.T) {
 	repoMoc := new(mocks.DBRepo)
 	contextMoc := new(mocks.Context)
+	cacheMoc := new(mocks.CacheHandler)
 
 	contextMoc.On("Param", "id").Return("1")
 
@@ -107,8 +117,9 @@ func TestController_FindUser_RepoErr(t *testing.T) {
 	contextMoc.On("JSON", http.StatusInternalServerError, respErr)
 
 	testService := userservice.New(repoMoc, logger.New())
-	testContrlr := New(testService, logger.New())
+	testContrlr := New(cacheMoc, testService, logger.New())
 
+	cacheMoc.On("Get", contextMoc, "1").Return("", fmt.Errorf("no data in cache"))
 	repoMoc.On("FindRecord", "1").Return(nil, repoErr)
 
 	// When

@@ -16,6 +16,8 @@ type (
 		ServerHost string
 		// ServerPort the port that server will start on
 		ServerPort string
+		// RedisAddress the server and port where redis will run
+		RedisAddress string
 	}
 )
 
@@ -35,5 +37,6 @@ func NewEnv() *Env {
 		DBConnectionString: os.Getenv("DB_CONNECTION_STRING"),
 		ServerHost:         os.Getenv("Server_Host"),
 		ServerPort:         os.Getenv("Server_Port"),
+		RedisAddress:       os.Getenv("Redis_Address"),
 	}
 }

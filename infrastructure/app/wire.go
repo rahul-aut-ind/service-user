@@ -5,6 +5,7 @@ package app
 
 import (
 	"github.com/rahul-aut-ind/service-user/domain/logger"
+	"github.com/rahul-aut-ind/service-user/infrastructure/caching"
 	"github.com/rahul-aut-ind/service-user/infrastructure/routes"
 	"github.com/rahul-aut-ind/service-user/interfaceadapters/controllers/usercontroller"
 	"github.com/rahul-aut-ind/service-user/interfaceadapters/handlers/requesthandler"
@@ -23,6 +24,9 @@ func New(e *gin.Engine) (*App, error) {
 		config.Wired,
 
 		requesthandler.Wired,
+
+		caching.Wired,
+		wire.Bind(new(caching.CacheHandler), new(*caching.RedisClient)),
 
 		userrepo.Wired,
 		wire.Bind(new(userrepo.DBRepo), new(*userrepo.MysqlRepository)),
