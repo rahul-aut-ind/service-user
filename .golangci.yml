@@ -1,6 +1,6 @@
 linters-settings:
   govet:
-    check-shadowing: true
+  shadow:
   gocyclo:
     min-complexity: 10
   dupl:
@@ -31,6 +31,9 @@ linters-settings:
       - paramTypeCombine
 
 issues:
+  exclude-files:
+    - swagger.go
+    - _test.go
   exclude-rules:
     - text: "not declared by package utf8"
       linters:
@@ -52,10 +55,8 @@ linters:
     - staticcheck
     - unused
     - gosimple
-    - structcheck
     - ineffassign
     - typecheck
-    - megacheck
     - govet
     - gocyclo
     - gosec
@@ -63,7 +64,7 @@ linters:
     - dupl
     - nakedret
     - prealloc
-    - exportloopref
+    - copyloopvar
     - gocritic
     - bodyclose
     - stylecheck
@@ -83,12 +84,7 @@ linters:
     - funlen
 
 service:
-  golangci-lint-version: 1.61.x
+  golangci-lint-version: 1.60.x
   prepare:
     - make deps
     - make generate
-
-run:
-  skip-files:
-    - swagger.go
-    - _test.go
