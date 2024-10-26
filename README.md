@@ -6,15 +6,21 @@ download dependencies `go mod download`
 
 create a `.env` file taking `.env.example` as reference.
 
-run the service from terminal `wire ./... && go run cmd/service-user/main.go`
+### run the service locally
+
+run the service from terminal `make local-run`
+
+### run the service on docker (locally)
+
+run the service from terminal `make run-service`
 
 ### unit & integration tests
 
-run in terminal `wire ./... & go test ./...`
+run in terminal `make test`
 
 ### lint check
 
-run in terminal `golangci-lint run`
+run in terminal `make lint`
 make sure to `brew install golangci-lint` before
 
 ### Prerequisites
