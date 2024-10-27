@@ -6,15 +6,21 @@ download dependencies `go mod download`
 
 create a `.env` file taking `.env.example` as reference.
 
-run the service from terminal `wire ./... && go run cmd/service-user/main.go`
+### run the service locally
+
+run the service from terminal `make local-run`
+
+### run the service on docker (locally)
+
+run the service from terminal `make run-service`
 
 ### unit & integration tests
 
-run in terminal `wire ./... & go test ./...`
+run in terminal `make test`
 
 ### lint check
 
-run in terminal `golangci-lint run`
+run in terminal `make lint`
 make sure to `brew install golangci-lint` before
 
 ### Prerequisites
@@ -22,14 +28,25 @@ make sure to `brew install golangci-lint` before
 - Go 1.20+
 - Docker
 - MySQL 8.0
+- Redis
 
 Quick test from terminal to check service response `curl "localhost:8080/api/v1/users/4"` should yield result after local mysql DB setup and seeding initial data steps listed below is completed.
+
+### local redis setup
+
+##### pull latest image
+
+`docker pull redis/redis-stack:latest`
+
+##### run container
+
+`docker run -d --name redis-stack -p 6379:6379 -p 8001:8001 redis/redis-stack:latest`
 
 ### local mysql DB setup
 
 ##### pull latest image
 
-`docker pull mysql/mysql-server`
+`docker pull mysql/mysql-server:latest`
 
 ##### run container
 

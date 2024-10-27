@@ -9,6 +9,7 @@ package app
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/rahul-aut-ind/service-user/domain/logger"
+	"github.com/rahul-aut-ind/service-user/infrastructure/caching"
 	"github.com/rahul-aut-ind/service-user/infrastructure/routes"
 	"github.com/rahul-aut-ind/service-user/interfaceadapters/controllers/usercontroller"
 	"github.com/rahul-aut-ind/service-user/interfaceadapters/handlers/requesthandler"
@@ -21,11 +22,12 @@ import (
 
 func New(e *gin.Engine) (*App, error) {
 	requestHandler := requesthandler.New(e)
-	loggerLogger := logger.New()
 	env := config.NewEnv()
+	loggerLogger := logger.New()
+	redisClient := caching.New(env, loggerLogger)
 	mysqlRepository := userrepo.New(loggerLogger, env)
 	service := userservice.New(mysqlRepository, loggerLogger)
-	controller := usercontroller.New(service, loggerLogger)
+	controller := usercontroller.New(redisClient, service, loggerLogger)
 	routesRoutes := routes.New(requestHandler, controller)
 	app := newApp(routesRoutes, env, loggerLogger, e)
 	return app, nil
