@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/rahul-aut-ind/service-user/domain/errors"
 	"github.com/rahul-aut-ind/service-user/domain/logger"
 	"github.com/rahul-aut-ind/service-user/domain/models"
@@ -46,7 +47,12 @@ type (
 
 var (
 	userIDRegExp = regexp.MustCompile(`^\d+$`)
+	validate     = validator.New()
 )
+
+func validateInput(input models.User) error {
+	return validate.Struct(input)
+}
 
 func New(rc caching.CacheHandler, s userservice.IService, l *logger.Logger) *Controller {
 	return &Controller{
@@ -61,6 +67,11 @@ func (uc *Controller) CreateUser(c Context) {
 
 	err := c.ShouldBindJSON(newUser)
 	if err != nil {
+		uc.handleError(c, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("bad request. Err :: %v", err)))
+		return
+	}
+
+	if err := validateInput(*newUser); err != nil {
 		uc.handleError(c, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("bad request. Err :: %v", err)))
 		return
 	}
@@ -149,6 +160,11 @@ func (uc *Controller) UpdateUser(c Context) {
 
 	err := c.ShouldBindJSON(updatedUserInfo)
 	if err != nil {
+		uc.handleError(c, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("bad request. Err :: %v", err)))
+		return
+	}
+
+	if err := validateInput(*updatedUserInfo); err != nil {
 		uc.handleError(c, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("bad request. Err :: %v", err)))
 		return
 	}
