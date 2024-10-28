@@ -25,32 +25,16 @@ make sure to `brew install golangci-lint` before
 
 ### Prerequisites
 
-- Go 1.20+
+- Go 1.22+
 - Docker
 - MySQL 8.0
 - Redis
 
 Quick test from terminal to check service response `curl "localhost:8080/api/v1/users/4"` should yield result after local mysql DB setup and seeding initial data steps listed below is completed.
 
-### local redis setup
+### local redis & mysql setup
 
-##### pull latest image
-
-`docker pull redis/redis-stack:latest`
-
-##### run container
-
-`docker run -d --name redis-stack -p 6379:6379 -p 8001:8001 redis/redis-stack:latest`
-
-### local mysql DB setup
-
-##### pull latest image
-
-`docker pull mysql/mysql-server:latest`
-
-##### run container
-
-`docker run --name=mysql-server -d -p 3306:3306 mysql/mysql-server:latest`
+run in terminal `make local-setup`
 
 ##### check the password from docker logs
 
@@ -58,7 +42,7 @@ Quick test from terminal to check service response `curl "localhost:8080/api/v1/
 
 ##### access mysql cli
 
-`docker exec -it mysql-server mysql -u root -p`
+`docker exec -it mysql-server mysql -u root -p`  || (reset pswd for first time use)
 
 ##### create database
 

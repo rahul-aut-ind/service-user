@@ -8,12 +8,12 @@ import (
 
 type Routes struct {
 	handler    handlers.RequestHandler
-	controller controllers.IController
+	controller controllers.UserHandler
 }
 
 func New(
 	rh handlers.RequestHandler,
-	c controllers.IController,
+	c controllers.UserHandler,
 ) *Routes {
 	return &Routes{
 		handler:    rh,
@@ -41,5 +41,4 @@ func (r *Routes) Setup() {
 		PUT("/:id", func(c *gin.Context) { r.controller.UpdateUser(c) }).
 		// delete by id
 		DELETE("/:id", func(c *gin.Context) { r.controller.DeleteUser(c) })
-
 }

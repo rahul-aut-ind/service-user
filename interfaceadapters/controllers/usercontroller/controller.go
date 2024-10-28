@@ -18,7 +18,7 @@ import (
 )
 
 type (
-	IController interface {
+	UserHandler interface {
 		FindUser(c Context)
 		FindAllUsers(c Context)
 		CreateUser(c Context)
@@ -28,7 +28,7 @@ type (
 
 	Controller struct {
 		rc      caching.CacheHandler
-		service userservice.IService
+		service userservice.Services
 		log     *logger.Logger
 	}
 
@@ -54,7 +54,7 @@ func validateInput(input models.User) error {
 	return validate.Struct(input)
 }
 
-func New(rc caching.CacheHandler, s userservice.IService, l *logger.Logger) *Controller {
+func New(rc caching.CacheHandler, s userservice.Services, l *logger.Logger) *Controller {
 	return &Controller{
 		rc:      rc,
 		service: s,
@@ -76,7 +76,7 @@ func (uc *Controller) CreateUser(c Context) {
 		return
 	}
 
-	user, err := uc.service.Add(newUser)
+	user, err := uc.service.AddUser(newUser)
 	if err != nil {
 		uc.handleError(c, errors.New(errors.ErrCodeGeneric, fmt.Errorf("error :: %v", err)))
 		return
@@ -100,7 +100,7 @@ func (uc *Controller) FindUser(c Context) {
 	cachedData, err := uc.rc.Get(c, userID)
 	if err != nil {
 		uc.log.Debug("cache miss")
-		user, err := uc.service.Get(userID)
+		user, err := uc.service.GetUserWithID(userID)
 		if err != nil {
 			if strings.Contains(err.Error(), models.ErrMsgNoUserfound) {
 				uc.handleError(c, errors.New(errors.ErrCodeNoUser, fmt.Errorf("error :: %v", err)))
@@ -133,7 +133,7 @@ func (uc *Controller) DeleteUser(c Context) {
 		return
 	}
 
-	err := uc.service.Delete(userID)
+	err := uc.service.DeleteUser(userID)
 	if err != nil {
 		if strings.Contains(err.Error(), models.ErrMsgNoUserfound) {
 			uc.handleError(c, errors.New(errors.ErrCodeNoUser, fmt.Errorf("error :: %v", err)))
@@ -169,7 +169,7 @@ func (uc *Controller) UpdateUser(c Context) {
 		return
 	}
 
-	user, err := uc.service.Update(userID, updatedUserInfo)
+	user, err := uc.service.UpdateUser(userID, updatedUserInfo)
 	if err != nil {
 		if strings.Contains(err.Error(), models.ErrMsgNoUserfound) {
 			uc.handleError(c, errors.New(errors.ErrCodeNoUser, fmt.Errorf("error :: %v", err)))
@@ -187,7 +187,7 @@ func (uc *Controller) UpdateUser(c Context) {
 }
 
 func (uc *Controller) FindAllUsers(c Context) {
-	user, err := uc.service.GetAll()
+	user, err := uc.service.GetAllUsers()
 	if err != nil {
 		uc.handleError(c, errors.New(errors.ErrCodeNoUser, fmt.Errorf("error :: %v", err)))
 		return

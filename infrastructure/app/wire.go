@@ -32,10 +32,10 @@ func New(e *gin.Engine) (*App, error) {
 		wire.Bind(new(userrepo.DBRepo), new(*userrepo.MysqlRepository)),
 
 		userservice.Wired,
-		wire.Bind(new(userservice.IService), new(*userservice.Service)),
+		wire.Bind(new(userservice.Services), new(*userservice.Service)),
 
 		usercontroller.Wired,
-		wire.Bind(new(usercontroller.IController), new(*usercontroller.Controller)),
+		wire.Bind(new(usercontroller.UserHandler), new(*usercontroller.Controller)),
 
 		routes.Wired,
 
