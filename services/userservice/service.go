@@ -63,6 +63,7 @@ func (s *Service) DeleteUser(id string) error {
 		s.log.Errorf(msg)
 		return fmt.Errorf("%s", msg)
 	}
+	s.log.Debugf("deleted user %d", res.ID)
 
 	return nil
 }
