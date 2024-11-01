@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/rahul-aut-ind/service-user/domain/logger"
 	"github.com/rahul-aut-ind/service-user/internal/config"
+	"github.com/rahul-aut-ind/service-user/pkg/logger"
 )
 
 type (

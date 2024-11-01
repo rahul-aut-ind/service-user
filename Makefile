@@ -1,4 +1,4 @@
-build:
+build: sanitize
 	docker build -t service-user .
 
 run-service: build
@@ -28,3 +28,21 @@ local-setup:
 	echo "mysql server initialized"
 	docker run -d --name redis-stack -p 6379:6379 -p 8001:8001 redis/redis-stack:latest
 	echo "redis initialized"
+
+sanitize: deps lint test
+
+local-docker-up:
+	docker start mysql-server redis-stack
+	docker start user-service
+
+local-docker-down:
+	docker stop mysql-server redis-stack user-service
+
+local-docker-delete-service:
+	docker stop user-service
+	docker rm user-service
+
+local-redeploy: local-docker-down local-docker-delete-service run-service local-docker-up
+
+service-logs:
+	docker logs user-service -f --tail 100

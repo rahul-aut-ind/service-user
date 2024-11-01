@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/rahul-aut-ind/service-user/domain/logger"
 	"github.com/rahul-aut-ind/service-user/infrastructure/app"
+	"github.com/rahul-aut-ind/service-user/pkg/logger"
 )
 
 func main() {

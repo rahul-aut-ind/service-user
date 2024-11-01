@@ -6,9 +6,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/rahul-aut-ind/service-user/domain/logger"
 	"github.com/rahul-aut-ind/service-user/domain/models"
 	"github.com/rahul-aut-ind/service-user/internal/config"
+	"github.com/rahul-aut-ind/service-user/pkg/logger"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	glog "gorm.io/gorm/logger"

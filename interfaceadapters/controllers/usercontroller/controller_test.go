@@ -3,11 +3,11 @@ package usercontroller
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/rahul-aut-ind/service-user/pkg/logger"
 	"net/http"
 	"testing"
 
 	"github.com/rahul-aut-ind/service-user/domain/errors"
-	"github.com/rahul-aut-ind/service-user/domain/logger"
 	"github.com/rahul-aut-ind/service-user/domain/models"
 	"github.com/rahul-aut-ind/service-user/infrastructure/caching"
 	"github.com/rahul-aut-ind/service-user/mocks"

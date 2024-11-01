@@ -3,9 +3,9 @@ package userservice
 import (
 	"fmt"
 
-	"github.com/rahul-aut-ind/service-user/domain/logger"
 	"github.com/rahul-aut-ind/service-user/domain/models"
 	"github.com/rahul-aut-ind/service-user/interfaceadapters/repositories/userrepo"
+	"github.com/rahul-aut-ind/service-user/pkg/logger"
 )
 
 type (
@@ -13,7 +13,7 @@ type (
 		GetUserWithID(id string) (*models.User, error)
 		GetAllUsers() ([]models.User, error)
 		AddUser(u *models.User) (*models.User, error)
-		UpdateUser(uID string, u *models.User) (*models.User, error)
+		UpdateUser(id string, u *models.User) (*models.User, error)
 		DeleteUser(id string) error
 		UploadProfilePicture(id string) error
 	}
@@ -59,7 +59,7 @@ func (s *Service) DeleteUser(id string) error {
 
 	res, err = s.db.DeleteRecord(res)
 	if err != nil {
-		msg := fmt.Sprintf("error deleting user %d :: %s", res.ID, err.Error())
+		msg := fmt.Sprintf("error deleting user %s :: %s", id, err.Error())
 		s.log.Errorf(msg)
 		return fmt.Errorf("%s", msg)
 	}
@@ -78,8 +78,8 @@ func (s *Service) GetAllUsers() ([]models.User, error) {
 	return res, nil
 }
 
-func (s *Service) UpdateUser(uID string, u *models.User) (*models.User, error) {
-	rec, err := s.db.FindRecord(uID)
+func (s *Service) UpdateUser(id string, u *models.User) (*models.User, error) {
+	rec, err := s.db.FindRecord(id)
 	if err != nil {
 		msg := fmt.Sprintf("error %s :: %s", models.ErrMsgNoUserfound, err.Error())
 		s.log.Errorf(msg)
@@ -93,7 +93,7 @@ func (s *Service) UpdateUser(uID string, u *models.User) (*models.User, error) {
 
 	res, err := s.db.UpdateRecord(u)
 	if err != nil {
-		msg := fmt.Sprintf("error updating user %d :: %s", res.ID, err.Error())
+		msg := fmt.Sprintf("error updating user %s :: %s", id, err.Error())
 		s.log.Errorf(msg)
 		return nil, fmt.Errorf("%s", msg)
 	}
@@ -102,5 +102,6 @@ func (s *Service) UpdateUser(uID string, u *models.User) (*models.User, error) {
 }
 
 func (s *Service) UploadProfilePicture(id string) error {
+	s.log.Debugf("uploading profile pic with id %s", id)
 	return nil
 }

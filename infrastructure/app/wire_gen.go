@@ -8,13 +8,13 @@ package app
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/rahul-aut-ind/service-user/domain/logger"
 	"github.com/rahul-aut-ind/service-user/infrastructure/caching"
 	"github.com/rahul-aut-ind/service-user/infrastructure/routes"
 	"github.com/rahul-aut-ind/service-user/interfaceadapters/controllers/usercontroller"
 	"github.com/rahul-aut-ind/service-user/interfaceadapters/handlers/requesthandler"
 	"github.com/rahul-aut-ind/service-user/interfaceadapters/repositories/userrepo"
 	"github.com/rahul-aut-ind/service-user/internal/config"
+	"github.com/rahul-aut-ind/service-user/pkg/logger"
 	"github.com/rahul-aut-ind/service-user/services/userservice"
 )
 

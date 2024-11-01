@@ -11,9 +11,9 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/rahul-aut-ind/service-user/domain/errors"
-	"github.com/rahul-aut-ind/service-user/domain/logger"
 	"github.com/rahul-aut-ind/service-user/domain/models"
 	"github.com/rahul-aut-ind/service-user/infrastructure/caching"
+	"github.com/rahul-aut-ind/service-user/pkg/logger"
 	"github.com/rahul-aut-ind/service-user/services/userservice"
 )
 
