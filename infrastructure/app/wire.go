@@ -8,6 +8,7 @@ import (
 	"github.com/rahul-aut-ind/service-user/infrastructure/routes"
 	"github.com/rahul-aut-ind/service-user/interfaceadapters/controllers/usercontroller"
 	"github.com/rahul-aut-ind/service-user/interfaceadapters/handlers/requesthandler"
+	"github.com/rahul-aut-ind/service-user/interfaceadapters/middlewares"
 	"github.com/rahul-aut-ind/service-user/interfaceadapters/repositories/userrepo"
 	"github.com/rahul-aut-ind/service-user/internal/config"
 	"github.com/rahul-aut-ind/service-user/pkg/logger"
@@ -24,6 +25,8 @@ func New(e *gin.Engine) (*App, error) {
 		config.Wired,
 
 		requesthandler.Wired,
+
+		middlewares.Wired,
 
 		caching.Wired,
 		wire.Bind(new(caching.CacheHandler), new(*caching.RedisClient)),

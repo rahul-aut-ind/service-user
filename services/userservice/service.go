@@ -52,7 +52,7 @@ func (s *Service) GetUserWithID(id string) (*models.User, error) {
 func (s *Service) DeleteUser(id string) error {
 	res, err := s.db.FindRecord(id)
 	if err != nil {
-		msg := fmt.Sprintf("error %s :: %s", models.ErrMsgNoUserfound, err.Error())
+		msg := fmt.Sprintf("error :: %s", err.Error())
 		s.log.Errorf(msg)
 		return fmt.Errorf("%s", msg)
 	}
@@ -82,7 +82,7 @@ func (s *Service) GetAllUsers() ([]models.User, error) {
 func (s *Service) UpdateUser(id string, u *models.User) (*models.User, error) {
 	rec, err := s.db.FindRecord(id)
 	if err != nil {
-		msg := fmt.Sprintf("error %s :: %s", models.ErrMsgNoUserfound, err.Error())
+		msg := fmt.Sprintf("error :: %s", err.Error())
 		s.log.Errorf(msg)
 		return nil, fmt.Errorf("%s", msg)
 	}

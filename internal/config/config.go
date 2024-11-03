@@ -21,6 +21,11 @@ type (
 	}
 )
 
+const (
+	// HeaderIDToken name of the header that holds the id token
+	HeaderIDToken = "x-id-token"
+)
+
 // NewEnv creates a new instance of Env
 // tries to load the env variables from .env
 func NewEnv() *Env {

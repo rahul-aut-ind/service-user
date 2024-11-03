@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/rahul-aut-ind/service-user/domain/errors"
 	"github.com/rahul-aut-ind/service-user/domain/models"
 	"github.com/rahul-aut-ind/service-user/internal/config"
 	"github.com/rahul-aut-ind/service-user/pkg/logger"
@@ -66,7 +67,7 @@ func initConfig() *gorm.Config {
 func initLog() glog.Interface {
 	newLogger := glog.New(log.New(os.Stdout, "\r\n", log.LstdFlags), glog.Config{
 		Colorful:      true,
-		LogLevel:      glog.Info,
+		LogLevel:      glog.Warn,
 		SlowThreshold: time.Second,
 	})
 	return newLogger
@@ -95,7 +96,7 @@ func (repo *MysqlRepository) FindRecord(id string) (*models.User, error) {
 	result := repo.db.Where(id).First(&user)
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("err :: %v", models.ErrMsgNoUserfound)
+			return nil, fmt.Errorf("err :: %v", errors.ErrCodeNoUser)
 		}
 		return nil, fmt.Errorf("err :: %v", result.Error)
 	}

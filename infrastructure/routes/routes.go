@@ -4,20 +4,24 @@ import (
 	"github.com/gin-gonic/gin"
 	controllers "github.com/rahul-aut-ind/service-user/interfaceadapters/controllers/usercontroller"
 	handlers "github.com/rahul-aut-ind/service-user/interfaceadapters/handlers/requesthandler"
+	"github.com/rahul-aut-ind/service-user/interfaceadapters/middlewares"
 )
 
 type Routes struct {
 	handler    handlers.RequestHandler
 	controller controllers.UserHandler
+	validator  middlewares.Validator
 }
 
 func New(
-	rh handlers.RequestHandler,
+	h handlers.RequestHandler,
 	c controllers.UserHandler,
+	v middlewares.Validator,
 ) *Routes {
 	return &Routes{
-		handler:    rh,
+		handler:    h,
 		controller: c,
+		validator:  v,
 	}
 }
 
@@ -31,14 +35,15 @@ func (r *Routes) Setup() {
 
 	// Public
 	r.handler.Gin.Group("/api/v1/users").
+		Use(r.validator.RequestValidator()).
 		// create user
 		POST("", func(c *gin.Context) { r.controller.CreateUser(c) }).
+		// update user by id
+		PUT("/:id", func(c *gin.Context) { r.controller.UpdateUser(c) }).
 		// Query specific
 		GET("/:id", func(c *gin.Context) { r.controller.FindUser(c) }).
 		// Query all users
 		GET("", func(c *gin.Context) { r.controller.FindAllUsers(c) }).
-		// update by id
-		PUT("/:id", func(c *gin.Context) { r.controller.UpdateUser(c) }).
 		// delete by id
 		DELETE("/:id", func(c *gin.Context) { r.controller.DeleteUser(c) })
 }

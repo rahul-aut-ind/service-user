@@ -33,6 +33,8 @@ sanitize: deps lint test
 
 local-docker-up:
 	docker start mysql-server redis-stack
+	echo "waiting for mysql and redis to be ready..."
+	sleep 10s
 	docker start user-service
 
 local-docker-down:

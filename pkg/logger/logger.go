@@ -27,7 +27,8 @@ type Logger struct {
 func New() *Logger {
 	var logger *zap.Logger
 
-	logger, _ = zap.NewDevelopment()
+	// logger, _ = zap.NewDevelopment() // for Development env
+	logger, _ = zap.NewProduction()
 	sugarLogger := logger.Sugar()
 
 	return &Logger{sugarLogger}
@@ -47,7 +48,6 @@ func (l *Logger) DefaultLogger() gin.HandlerFunc {
 			zap.String("path", path),
 			zap.String("ip", c.ClientIP()),
 			zap.String("user-agent", c.Request.UserAgent()),
-			zap.String("domain-errors", c.Errors.ByType(gin.ErrorTypePrivate).String()),
 			zap.Duration("cost", cost),
 		}
 		if len(c.Errors) > 0 {

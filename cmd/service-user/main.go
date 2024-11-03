@@ -8,13 +8,13 @@ import (
 
 func main() {
 	log := logger.New()
-
 	log.Info(">>>>>   service-user   <<<<<<")
-
 	gin.SetMode("debug")
-	r := gin.New()
+	e := gin.New()
+	e.Use(gin.Recovery())
+	e.Use(log.DefaultLogger())
 
-	a, err := app.New(r)
+	a, err := app.New(e)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -21,7 +21,6 @@ func newApp(r *routes.Routes, env *config.Env, l *logger.Logger, e *gin.Engine) 
 }
 
 func (a *App) Start() {
-	a.engine.Use(a.log.DefaultLogger())
 	a.route.Setup()
 	err := a.engine.Run(fmt.Sprintf("%s:%s", a.env.ServerHost, a.env.ServerPort))
 	if err != nil {
