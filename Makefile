@@ -46,5 +46,7 @@ local-docker-delete-service:
 
 local-redeploy: local-docker-down local-docker-delete-service run-service local-docker-up
 
+local-clean-run: run-service local-docker-up
+
 service-logs:
 	docker logs user-service -f --tail 100

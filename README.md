@@ -12,7 +12,7 @@ run the service from terminal `make local-run`
 
 ### run the service on docker (locally)
 
-run the service from terminal `make run-service`
+run the service from terminal `make local-clean-run`
 
 ### unit & integration tests
 
@@ -23,7 +23,7 @@ run in terminal `make test`
 run in terminal `make lint`
 make sure to `brew install golangci-lint` before
 
-### Prerequisites
+### prerequisites
 
 - Go 1.22+
 - Docker
@@ -68,22 +68,30 @@ run in terminal `make local-setup`
 
 ### test the service
 
+To test indivizual endpoints refer below:
+
 ##### CREATE USER
 
-`curl -X POST "localhost:8080/api/v1/users" -d '{"name":"User14","email":"user14@example.com"}'`
+`curl -X POST "localhost:8080/api/v1/users" -d '{"firstName":"TestFirstName","lastName":"TestLastName","email":"TestUser'$num'@example.com", "age":19,"address":"Somewhere 10001"}' -H "x-id-token:something"`
 
 ##### UPDATE USER
 
-`curl -X PUT "localhost:8080/api/v1/users/{ID}" -d '{"name":"User14_updated name"}'`
+`curl -X PUT "localhost:8080/api/v1/users/$id" -d '{"firstName":"UpadtedFirstName","lastName":"UpdatedLastName", "email":"random@test.com", "age":19,"address":"Str 2, building 5, Floor 9, Flat 10, Somewhere 10001"}' -H "x-id-token:something"`
 
 ##### GET ALL USERS
 
-`curl "localhost:8080/api/v1/users"`
+`curl "localhost:8080/api/v1/users" -H "x-id-token:something"`
 
 ##### GET SINGLE USER
 
-`curl "localhost:8080/api/v1/users/{ID}"`
+`curl "localhost:8080/api/v1/users/$id" -H "x-id-token:something"`
 
 ##### DELETE USER
 
-`curl -X DELETE "localhost:8080/api/v1/users/{ID}"`
+`curl -X DELETE "localhost:8080/api/v1/users/$id" -H "x-id-token:something"`
+
+
+###### Note: 
+- For a quick test of all apis, open a terminal window and run `sh quick-test.sh`
+
+----
