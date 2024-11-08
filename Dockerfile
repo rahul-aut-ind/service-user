@@ -1,5 +1,5 @@
 # ---- Build ----
-FROM golang:1.22-alpine AS golang-base
+FROM golang:1.23-alpine AS golang-base
 ENV SERVICE_NAME="service-user"
 
 WORKDIR /go/src/${SERVICE_NAME}

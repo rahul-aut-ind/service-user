@@ -3,11 +3,11 @@ package usercontroller
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/rahul-aut-ind/service-user/pkg/logger"
 	"net/http"
 	"testing"
 
 	"github.com/rahul-aut-ind/service-user/domain/errors"
-	"github.com/rahul-aut-ind/service-user/domain/logger"
 	"github.com/rahul-aut-ind/service-user/domain/models"
 	"github.com/rahul-aut-ind/service-user/infrastructure/caching"
 	"github.com/rahul-aut-ind/service-user/mocks"
@@ -22,7 +22,7 @@ var (
 	}
 )
 
-func TestController_FindUserSuccess(t *testing.T) {
+func TestController_FindUser_Success(t *testing.T) {
 	repoMoc := new(mocks.DBRepo)
 	contextMoc := new(mocks.Context)
 	cacheMoc := new(mocks.CacheHandler)
@@ -56,7 +56,7 @@ func TestController_FindUser_NoRecordsErr(t *testing.T) {
 
 	contextMoc.On("Param", "id").Return("9999")
 
-	repoFindErr := fmt.Errorf("%s", models.ErrMsgNoUserfound)
+	repoFindErr := fmt.Errorf("%s", errors.ErrCodeNoUser)
 	respErr := errors.New(errors.ErrCodeNoUser, fmt.Errorf("error :: error :: %v", repoFindErr))
 
 	contextMoc.On("JSON", http.StatusNotFound, respErr)

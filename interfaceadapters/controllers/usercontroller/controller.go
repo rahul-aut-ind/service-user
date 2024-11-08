@@ -11,14 +11,14 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/rahul-aut-ind/service-user/domain/errors"
-	"github.com/rahul-aut-ind/service-user/domain/logger"
 	"github.com/rahul-aut-ind/service-user/domain/models"
 	"github.com/rahul-aut-ind/service-user/infrastructure/caching"
+	"github.com/rahul-aut-ind/service-user/pkg/logger"
 	"github.com/rahul-aut-ind/service-user/services/userservice"
 )
 
 type (
-	IController interface {
+	UserHandler interface {
 		FindUser(c Context)
 		FindAllUsers(c Context)
 		CreateUser(c Context)
@@ -28,8 +28,9 @@ type (
 
 	Controller struct {
 		rc      caching.CacheHandler
-		service userservice.IService
+		service userservice.Services
 		log     *logger.Logger
+		val     *validator.Validate
 	}
 
 	Context interface {
@@ -45,38 +46,44 @@ type (
 	}
 )
 
-var (
-	userIDRegExp = regexp.MustCompile(`^\d+$`)
-	validate     = validator.New()
+const (
+	RequestAccepted = "ok"
 )
 
-func validateInput(input models.User) error {
-	return validate.Struct(input)
-}
+var (
+	userIDRegExp = regexp.MustCompile(`^\d+$`)
+)
 
-func New(rc caching.CacheHandler, s userservice.IService, l *logger.Logger) *Controller {
+func New(rc caching.CacheHandler, s userservice.Services, l *logger.Logger) *Controller {
 	return &Controller{
 		rc:      rc,
 		service: s,
 		log:     l,
+		val:     validator.New(),
 	}
 }
 
 func (uc *Controller) CreateUser(c Context) {
-	newUser := &models.User{}
+	req := &models.Request{}
 
-	err := c.ShouldBindJSON(newUser)
+	err := c.ShouldBindJSON(req)
 	if err != nil {
 		uc.handleError(c, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("bad request. Err :: %v", err)))
 		return
 	}
 
-	if err := validateInput(*newUser); err != nil {
+	if err := uc.validateInput(*req); err != nil {
 		uc.handleError(c, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("bad request. Err :: %v", err)))
 		return
 	}
+	newUser := &models.User{
+		Name:    req.FirstName + " " + req.LastName,
+		Email:   req.Email,
+		Address: req.Address,
+		Age:     req.Age,
+	}
 
-	user, err := uc.service.Add(newUser)
+	user, err := uc.service.AddUser(newUser)
 	if err != nil {
 		uc.handleError(c, errors.New(errors.ErrCodeGeneric, fmt.Errorf("error :: %v", err)))
 		return
@@ -100,9 +107,9 @@ func (uc *Controller) FindUser(c Context) {
 	cachedData, err := uc.rc.Get(c, userID)
 	if err != nil {
 		uc.log.Debug("cache miss")
-		user, err := uc.service.Get(userID)
+		user, err := uc.service.GetUserWithID(userID)
 		if err != nil {
-			if strings.Contains(err.Error(), models.ErrMsgNoUserfound) {
+			if strings.Contains(err.Error(), errors.ErrCodeNoUser) {
 				uc.handleError(c, errors.New(errors.ErrCodeNoUser, fmt.Errorf("error :: %v", err)))
 				return
 			}
@@ -133,9 +140,9 @@ func (uc *Controller) DeleteUser(c Context) {
 		return
 	}
 
-	err := uc.service.Delete(userID)
+	err := uc.service.DeleteUser(userID)
 	if err != nil {
-		if strings.Contains(err.Error(), models.ErrMsgNoUserfound) {
+		if strings.Contains(err.Error(), errors.ErrCodeNoUser) {
 			uc.handleError(c, errors.New(errors.ErrCodeNoUser, fmt.Errorf("error :: %v", err)))
 			return
 		}
@@ -146,7 +153,7 @@ func (uc *Controller) DeleteUser(c Context) {
 	if err != nil {
 		uc.log.Warnf("err updating cache :: %s", err)
 	}
-	c.JSON(http.StatusAccepted, &models.Response{Data: models.RequestAccepted})
+	c.JSON(http.StatusAccepted, &models.Response{Data: RequestAccepted})
 }
 
 func (uc *Controller) UpdateUser(c Context) {
@@ -156,22 +163,27 @@ func (uc *Controller) UpdateUser(c Context) {
 		return
 	}
 
-	updatedUserInfo := &models.User{}
-
-	err := c.ShouldBindJSON(updatedUserInfo)
+	req := &models.Request{}
+	err := c.ShouldBindJSON(req)
 	if err != nil {
 		uc.handleError(c, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("bad request. Err :: %v", err)))
 		return
 	}
 
-	if err := validateInput(*updatedUserInfo); err != nil {
+	if err := uc.validateInput(*req); err != nil {
 		uc.handleError(c, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("bad request. Err :: %v", err)))
 		return
 	}
+	updatedUserInfo := &models.User{
+		Name:    req.FirstName + " " + req.LastName,
+		Email:   req.Email,
+		Address: req.Address,
+		Age:     req.Age,
+	}
 
-	user, err := uc.service.Update(userID, updatedUserInfo)
+	user, err := uc.service.UpdateUser(userID, updatedUserInfo)
 	if err != nil {
-		if strings.Contains(err.Error(), models.ErrMsgNoUserfound) {
+		if strings.Contains(err.Error(), errors.ErrCodeNoUser) {
 			uc.handleError(c, errors.New(errors.ErrCodeNoUser, fmt.Errorf("error :: %v", err)))
 			return
 		}
@@ -187,12 +199,16 @@ func (uc *Controller) UpdateUser(c Context) {
 }
 
 func (uc *Controller) FindAllUsers(c Context) {
-	user, err := uc.service.GetAll()
+	user, err := uc.service.GetAllUsers()
 	if err != nil {
 		uc.handleError(c, errors.New(errors.ErrCodeNoUser, fmt.Errorf("error :: %v", err)))
 		return
 	}
 	c.JSON(http.StatusOK, &models.Response{Data: user})
+}
+
+func (uc *Controller) validateInput(input models.Request) error {
+	return uc.val.Struct(input)
 }
 
 func (uc *Controller) handleError(c Context, err error) {
@@ -202,6 +218,6 @@ func (uc *Controller) handleError(c Context, err error) {
 	} else {
 		apiErr = errors.New(errors.ErrCodeGeneric, err)
 	}
-	uc.log.Errorf("error :: %v", err)
+	uc.log.Errorf("error :: %s", err)
 	c.JSON(apiErr.HTTPCode(), apiErr)
 }

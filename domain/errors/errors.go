@@ -11,7 +11,9 @@ const (
 	ErrCodeGeneric = "GenericError"
 	// ErrCodeBadRequest API Error code for bad request
 	ErrCodeBadRequest = "BadRequest"
-	// ErrCodeNoUser API Error code for no preference for user
+	// ErrCodeInvalidUserIDHeader API Error code for invalid header
+	ErrCodeInvalidUserIDHeader = "InvalidHeader"
+	// ErrCodeNoUser API Error code for no user exists
 	ErrCodeNoUser = "NoUserFound"
 	// The added to all error codes to prevent conflicting with other services
 	errorMessageKeyPrefix = "service-user"

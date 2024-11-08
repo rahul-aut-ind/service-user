@@ -4,9 +4,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/rahul-aut-ind/service-user/domain/logger"
 	"github.com/rahul-aut-ind/service-user/domain/models"
 	"github.com/rahul-aut-ind/service-user/interfaceadapters/integrationtest"
+	"github.com/rahul-aut-ind/service-user/pkg/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
