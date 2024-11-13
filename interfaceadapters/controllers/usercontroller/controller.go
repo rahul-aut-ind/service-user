@@ -18,7 +18,7 @@ import (
 )
 
 type (
-	UserHandler interface {
+	Handler interface {
 		FindUser(c Context)
 		FindAllUsers(c Context)
 		CreateUser(c Context)

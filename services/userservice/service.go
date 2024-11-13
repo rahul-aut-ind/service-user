@@ -19,12 +19,12 @@ type (
 	}
 
 	Service struct {
-		db  userrepo.DBRepo
+		db  userrepo.DataHandler
 		log *logger.Logger
 	}
 )
 
-func New(r userrepo.DBRepo, l *logger.Logger) *Service {
+func New(r userrepo.DataHandler, l *logger.Logger) *Service {
 	return &Service{db: r, log: l}
 }
 

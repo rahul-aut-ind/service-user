@@ -20,7 +20,7 @@ func New(l *logger.Logger) Validator {
 	return Validator{log: l}
 }
 
-func (v *Validator) RequestValidator() gin.HandlerFunc {
+func (v *Validator) ValidateRequest() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		if IDToken := ctx.GetHeader(config.HeaderIDToken); IDToken != "" {
 			ctx.Next()
