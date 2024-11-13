@@ -13,11 +13,11 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	glog "gorm.io/gorm/logger"
-	schema "gorm.io/gorm/schema"
+	"gorm.io/gorm/schema"
 )
 
 type (
-	DBRepo interface {
+	DataHandler interface {
 		ListRecords() ([]models.User, error)
 		FindRecord(id string) (*models.User, error)
 		CreateRecord(u *models.User) (*models.User, error)
@@ -25,34 +25,38 @@ type (
 		DeleteRecord(u *models.User) (*models.User, error)
 	}
 
-	MysqlRepository struct {
-		db  *gorm.DB
-		log *logger.Logger
+	MysqlClient struct {
+		client *gorm.DB
+		log    *logger.Logger
 	}
 )
 
-func New(l *logger.Logger, env *config.Env) *MysqlRepository {
-	return &MysqlRepository{db: connect(env.DBConnectionString), log: l}
+const (
+	LogLevel = glog.Warn
+)
+
+func New(l *logger.Logger, env *config.Env) *MysqlClient {
+	return &MysqlClient{client: connect(env.DBConnectionString), log: l}
 }
 
 // Connect initializes the database connection
 func connect(dsn string) *gorm.DB {
-	db, err := gorm.Open(mysql.Open(dsn), initConfig())
+	client, err := gorm.Open(mysql.Open(dsn), initConfig())
 	if err != nil {
 		panic(fmt.Sprintf("failed to connect to database :: %v", err))
 	}
 
 	// Auto-migrate the User model
-	err = db.AutoMigrate(&models.User{})
+	err = client.AutoMigrate(&models.User{})
 	if err != nil {
 		panic(fmt.Sprintf("could not initialize tables | err :: %v", err))
 	}
 
-	sqlDB, _ := db.DB()
+	sqlDB, _ := client.DB()
 	sqlDB.SetMaxIdleConns(5)
 	sqlDB.SetMaxOpenConns(5)
 
-	return db
+	return client
 }
 
 // initConfig Initialize Config
@@ -67,7 +71,7 @@ func initConfig() *gorm.Config {
 func initLog() glog.Interface {
 	newLogger := glog.New(log.New(os.Stdout, "\r\n", log.LstdFlags), glog.Config{
 		Colorful:      true,
-		LogLevel:      glog.Warn,
+		LogLevel:      LogLevel,
 		SlowThreshold: time.Second,
 	})
 	return newLogger
@@ -81,19 +85,19 @@ func initNamingStrategy() *schema.NamingStrategy {
 	}
 }
 
-func (repo *MysqlRepository) CreateRecord(u *models.User) (*models.User, error) {
-	repo.log.Debugf("inserting record %v", *u)
-	result := repo.db.Create(&u)
+func (db *MysqlClient) CreateRecord(u *models.User) (*models.User, error) {
+	db.log.Debugf("inserting record %v", *u)
+	result := db.client.Create(&u)
 	if result.Error != nil {
 		return nil, fmt.Errorf("err :: %v", result.Error)
 	}
 	return u, nil
 }
 
-func (repo *MysqlRepository) FindRecord(id string) (*models.User, error) {
-	repo.log.Debugf("finding record with id %s", id)
+func (db *MysqlClient) FindRecord(id string) (*models.User, error) {
+	db.log.Debugf("finding record with id %s", id)
 	var user models.User
-	result := repo.db.Where(id).First(&user)
+	result := db.client.Where(id).First(&user)
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("err :: %v", errors.ErrCodeNoUser)
@@ -103,28 +107,28 @@ func (repo *MysqlRepository) FindRecord(id string) (*models.User, error) {
 	return &user, nil
 }
 
-func (repo *MysqlRepository) DeleteRecord(u *models.User) (*models.User, error) {
-	repo.log.Debugf("deleting record with id %d", u.ID)
-	result := repo.db.Delete(&u)
+func (db *MysqlClient) DeleteRecord(u *models.User) (*models.User, error) {
+	db.log.Debugf("deleting record with id %d", u.ID)
+	result := db.client.Delete(&u)
 	if result.Error != nil {
 		return nil, fmt.Errorf("err :: %v", result.Error)
 	}
 	return u, nil
 }
 
-func (repo *MysqlRepository) ListRecords() ([]models.User, error) {
-	repo.log.Debugf("listing all records")
+func (db *MysqlClient) ListRecords() ([]models.User, error) {
+	db.log.Debugf("listing all records")
 	var users []models.User
-	result := repo.db.Find(&users)
+	result := db.client.Find(&users)
 	if result.Error != nil {
 		return nil, fmt.Errorf("err :: %v", result.Error)
 	}
 	return users, nil
 }
 
-func (repo *MysqlRepository) UpdateRecord(u *models.User) (*models.User, error) {
-	repo.log.Debugf("updating record with id %d", u.ID)
-	result := repo.db.Updates(&u)
+func (db *MysqlClient) UpdateRecord(u *models.User) (*models.User, error) {
+	db.log.Debugf("updating record with id %d", u.ID)
+	result := db.client.Updates(&u)
 	if result.Error != nil {
 		return nil, fmt.Errorf("err :: %v", result.Error)
 	}

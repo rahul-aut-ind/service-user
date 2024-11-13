@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-type ILogger interface {
+type LogHandler interface {
 	Info(args ...interface{})
 	Infof(template string, args ...interface{})
 	Debug(args ...interface{})
@@ -41,14 +41,13 @@ func (l *Logger) DefaultLogger() gin.HandlerFunc {
 		path := c.Request.URL.Path
 		c.Next()
 
-		cost := time.Since(start)
+		duration := time.Since(start)
 		fields := []zapcore.Field{
 			zap.Int("status", c.Writer.Status()),
 			zap.String("method", c.Request.Method),
-			zap.String("path", path),
+			zap.Duration("duration", duration),
 			zap.String("ip", c.ClientIP()),
 			zap.String("user-agent", c.Request.UserAgent()),
-			zap.Duration("cost", cost),
 		}
 		if len(c.Errors) > 0 {
 			// Append error field if this is an erroneous request.

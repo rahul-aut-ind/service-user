@@ -32,13 +32,13 @@ func New(e *gin.Engine) (*App, error) {
 		wire.Bind(new(caching.CacheHandler), new(*caching.RedisClient)),
 
 		userrepo.Wired,
-		wire.Bind(new(userrepo.DBRepo), new(*userrepo.MysqlRepository)),
+		wire.Bind(new(userrepo.DataHandler), new(*userrepo.MysqlClient)),
 
 		userservice.Wired,
 		wire.Bind(new(userservice.Services), new(*userservice.Service)),
 
 		usercontroller.Wired,
-		wire.Bind(new(usercontroller.UserHandler), new(*usercontroller.Controller)),
+		wire.Bind(new(usercontroller.Handler), new(*usercontroller.Controller)),
 
 		routes.Wired,
 

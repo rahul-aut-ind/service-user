@@ -13,7 +13,7 @@ import (
 
 type RepoTestSuite struct {
 	suite.Suite
-	repo    *MysqlRepository
+	repo    *MysqlClient
 	dbSetup *integrationtest.MySQLSetup
 }
 
@@ -22,9 +22,9 @@ func (s *RepoTestSuite) SetupSuite() {
 }
 
 func (s *RepoTestSuite) SetupTest() {
-	s.repo = &MysqlRepository{
-		db:  connect(s.dbSetup.ConnString),
-		log: logger.New(),
+	s.repo = &MysqlClient{
+		client: connect(s.dbSetup.ConnString),
+		log:    logger.New(),
 	}
 }
 

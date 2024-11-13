@@ -9,13 +9,13 @@ import (
 
 type Routes struct {
 	handler    handlers.RequestHandler
-	controller controllers.UserHandler
+	controller controllers.Handler
 	validator  middlewares.Validator
 }
 
 func New(
 	h handlers.RequestHandler,
-	c controllers.UserHandler,
+	c controllers.Handler,
 	v middlewares.Validator,
 ) *Routes {
 	return &Routes{
@@ -35,7 +35,7 @@ func (r *Routes) Setup() {
 
 	// Public
 	r.handler.Gin.Group("/api/v1/users").
-		Use(r.validator.RequestValidator()).
+		Use(r.validator.ValidateRequest()).
 		// create user
 		POST("", func(c *gin.Context) { r.controller.CreateUser(c) }).
 		// update user by id
