@@ -3,17 +3,22 @@ package usercontroller
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/rahul-aut-ind/service-user/domain/errors"
 	"github.com/rahul-aut-ind/service-user/domain/models"
 	"github.com/rahul-aut-ind/service-user/infrastructure/caching"
+	"github.com/rahul-aut-ind/service-user/interfaceadapters/requestparser"
+	"github.com/rahul-aut-ind/service-user/internal/config"
 	"github.com/rahul-aut-ind/service-user/pkg/logger"
+	"github.com/rahul-aut-ind/service-user/services/imageservice"
 	"github.com/rahul-aut-ind/service-user/services/userservice"
 )
 
@@ -24,13 +29,15 @@ type (
 		CreateUser(c Context)
 		UpdateUser(c Context)
 		DeleteUser(c Context)
+		AddUserImage(c Context)
 	}
 
 	Controller struct {
-		rc      caching.CacheHandler
-		service userservice.Services
-		log     *logger.Logger
-		val     *validator.Validate
+		rc           caching.CacheHandler
+		userService  userservice.UserService
+		imageService imageservice.UserImageService
+		log          *logger.Logger
+		val          *validator.Validate
 	}
 
 	Context interface {
@@ -43,6 +50,7 @@ type (
 		Err() error
 		Done() <-chan struct{}
 		Deadline() (deadline time.Time, ok bool)
+		Copy() *gin.Context
 	}
 )
 
@@ -54,12 +62,13 @@ var (
 	userIDRegExp = regexp.MustCompile(`^\d+$`)
 )
 
-func New(rc caching.CacheHandler, s userservice.Services, l *logger.Logger) *Controller {
+func New(rc caching.CacheHandler, us userservice.UserService, is imageservice.UserImageService, l *logger.Logger) *Controller {
 	return &Controller{
-		rc:      rc,
-		service: s,
-		log:     l,
-		val:     validator.New(),
+		rc:           rc,
+		userService:  us,
+		imageService: is,
+		log:          l,
+		val:          validator.New(),
 	}
 }
 
@@ -83,7 +92,7 @@ func (uc *Controller) CreateUser(c Context) {
 		Age:     req.Age,
 	}
 
-	user, err := uc.service.AddUser(newUser)
+	user, err := uc.userService.AddUser(newUser)
 	if err != nil {
 		uc.handleError(c, errors.New(errors.ErrCodeGeneric, fmt.Errorf("error :: %v", err)))
 		return
@@ -107,7 +116,7 @@ func (uc *Controller) FindUser(c Context) {
 	cachedData, err := uc.rc.Get(c, userID)
 	if err != nil {
 		uc.log.Debug("cache miss")
-		user, err := uc.service.GetUserWithID(userID)
+		user, err := uc.userService.GetUserWithID(userID)
 		if err != nil {
 			if strings.Contains(err.Error(), errors.ErrCodeNoUser) {
 				uc.handleError(c, errors.New(errors.ErrCodeNoUser, fmt.Errorf("error :: %v", err)))
@@ -140,7 +149,7 @@ func (uc *Controller) DeleteUser(c Context) {
 		return
 	}
 
-	err := uc.service.DeleteUser(userID)
+	err := uc.userService.DeleteUser(userID)
 	if err != nil {
 		if strings.Contains(err.Error(), errors.ErrCodeNoUser) {
 			uc.handleError(c, errors.New(errors.ErrCodeNoUser, fmt.Errorf("error :: %v", err)))
@@ -181,7 +190,7 @@ func (uc *Controller) UpdateUser(c Context) {
 		Age:     req.Age,
 	}
 
-	user, err := uc.service.UpdateUser(userID, updatedUserInfo)
+	user, err := uc.userService.UpdateUser(userID, updatedUserInfo)
 	if err != nil {
 		if strings.Contains(err.Error(), errors.ErrCodeNoUser) {
 			uc.handleError(c, errors.New(errors.ErrCodeNoUser, fmt.Errorf("error :: %v", err)))
@@ -199,12 +208,41 @@ func (uc *Controller) UpdateUser(c Context) {
 }
 
 func (uc *Controller) FindAllUsers(c Context) {
-	user, err := uc.service.GetAllUsers()
+	user, err := uc.userService.GetAllUsers()
 	if err != nil {
 		uc.handleError(c, errors.New(errors.ErrCodeNoUser, fmt.Errorf("error :: %v", err)))
 		return
 	}
 	c.JSON(http.StatusOK, &models.Response{Data: user})
+}
+
+func (uc *Controller) AddUserImage(c Context) {
+	body, err := io.ReadAll(c.Copy().Request.Body)
+
+	if err != nil {
+		uc.handleError(c, err)
+		return
+	}
+
+	rp := &requestparser.RequestParser{
+		Log:         uc.log,
+		Body:        body,
+		ContentType: c.GetHeader(config.HeaderContentType),
+	}
+
+	req, err := rp.ParseMultipart()
+	if err != nil {
+		uc.handleError(c, err)
+		return
+	}
+
+	resp, err := uc.imageService.SaveImage(c.GetHeader(config.HeaderUserID), req)
+	if err != nil {
+		uc.handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusCreated, resp)
 }
 
 func (uc *Controller) validateInput(input models.Request) error {

@@ -34,7 +34,7 @@ sanitize: deps lint test
 local-docker-up:
 	docker start mysql-server redis-stack
 	echo "waiting for mysql and redis to be ready..."
-	sleep 10s
+	sleep 15s
 	docker start user-service
 
 local-docker-down:
@@ -50,3 +50,34 @@ local-clean-run: run-service local-docker-up
 
 service-logs:
 	docker logs user-service -f --tail 100
+
+localstack-up:
+	docker run --rm --name=localstack -p 4566:4566 -p 4571:4571 localstack/localstack
+
+local-dynamo-setup: localstack-up local-aws-setup
+	aws --endpoint-url=http://localhost:4566 dynamodb create-table \
+        --table-name user-images \
+        --attribute-definitions \
+            AttributeName=UserID,AttributeType=S \
+            AttributeName=ImageID,AttributeType=S \
+            AttributeName=TakenAt,AttributeType=S \
+        --key-schema \
+            AttributeName=UserID,KeyType=HASH \
+            AttributeName=ImageID,KeyType=RANGE \
+        --provisioned-throughput \
+            ReadCapacityUnits=5,WriteCapacityUnits=5 \
+        --local-secondary-indexes \
+            "[{\"IndexName\": \"UserIDTakenAtIndex\", \"KeySchema\":[{\"AttributeName\":\"UserID\",\"KeyType\":\"HASH\"}, {\"AttributeName\":\"TakenAt\",\"KeyType\":\"RANGE\"}],\"Projection\":{\"ProjectionType\":\"ALL\"}}]" \
+        --table-class STANDARD
+
+local-s3-setup: localstack-up local-aws-setup
+	aws --endpoint-url=http://localhost:4566 s3 mb s3://user-images
+
+local-aws-setup:
+	aws configure set aws_access_key_id admin
+	sleep 1s
+	aws configure set aws_secret_access_key password
+	sleep 1s
+	aws configure set region eu-central-1
+	sleep 1s
+

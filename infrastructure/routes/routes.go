@@ -2,9 +2,9 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
-	controllers "github.com/rahul-aut-ind/service-user/interfaceadapters/controllers/usercontroller"
-	handlers "github.com/rahul-aut-ind/service-user/interfaceadapters/handlers/requesthandler"
 	"github.com/rahul-aut-ind/service-user/interfaceadapters/middlewares"
+	handlers "github.com/rahul-aut-ind/service-user/interfaceadapters/requesthandler"
+	controllers "github.com/rahul-aut-ind/service-user/interfaceadapters/usercontroller"
 )
 
 type Routes struct {
@@ -26,13 +26,6 @@ func New(
 }
 
 func (r *Routes) Setup() {
-	// Private
-	// r.handler.Gin.Group("/service-user/api/v3/users").
-	// 	// // Query all users
-	// 	// GET("", func(c *gin.Context) { r.controller.FindAllUsers(c) }).
-	// 	// // Query specific
-	// 	// GET("/:id", func(c *gin.Context) { r.controller.FindUser(c) })
-
 	// Public
 	r.handler.Gin.Group("/api/v1/users").
 		Use(r.validator.ValidateRequest()).
@@ -46,4 +39,13 @@ func (r *Routes) Setup() {
 		GET("", func(c *gin.Context) { r.controller.FindAllUsers(c) }).
 		// delete by id
 		DELETE("/:id", func(c *gin.Context) { r.controller.DeleteUser(c) })
+
+	r.handler.Gin.Group("/api/v1/user-image").
+		Use(r.validator.ValidateRequest()).
+		// upload a image
+		POST("", func(c *gin.Context) { r.controller.AddUserImage(c) })
 }
+
+// GET("", r.controller.GetAll).
+// GET(fmt.Sprintf("/:%s", controller.ScanID), r.controller.Get).
+// DELETE(fmt.Sprintf("/:%s", controller.ScanID), r.controller.Delete)

@@ -13,6 +13,8 @@ const (
 	ErrCodeBadRequest = "BadRequest"
 	// ErrCodeInvalidUserIDHeader API Error code for invalid header
 	ErrCodeInvalidUserIDHeader = "InvalidHeader"
+	// ErrCodeNotFound API Error code for not found
+	ErrCodeNotFound = "NotFound"
 	// ErrCodeNoUser API Error code for no user exists
 	ErrCodeNoUser = "NoUserFound"
 	// The added to all error codes to prevent conflicting with other services
@@ -42,6 +44,7 @@ func (e Error) HTTPCode() int {
 		ErrCodeBadRequest: http.StatusBadRequest,
 		ErrCodeGeneric:    http.StatusInternalServerError,
 		ErrCodeNoUser:     http.StatusNotFound,
+		ErrCodeNotFound:   http.StatusNotFound,
 	}
 	if code, ok := errCodeMap[e.Code]; ok {
 		return code
