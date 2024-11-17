@@ -9,7 +9,7 @@ import (
 func main() {
 	log := logger.New()
 	log.Info(">>>>>   service-user   <<<<<<")
-	gin.SetMode("debug")
+	gin.SetMode("release")
 	e := gin.New()
 	e.Use(gin.Recovery())
 	e.Use(log.DefaultLogger())
