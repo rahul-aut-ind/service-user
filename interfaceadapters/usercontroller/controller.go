@@ -29,7 +29,11 @@ type (
 		CreateUser(c Context)
 		UpdateUser(c Context)
 		DeleteUser(c Context)
-		AddUserImage(c Context)
+		CreateUserImage(c Context)
+		GetUserImage(c Context)
+		GetAllUserImages(c Context)
+		DeleteUserImage(c Context)
+		DeleteAllUserImages(c Context)
 	}
 
 	Controller struct {
@@ -55,11 +59,13 @@ type (
 )
 
 const (
-	RequestAccepted = "ok"
+	RequestAccepted      = "ok"
+	DefaultPageItemLimit = 10
 )
 
 var (
-	userIDRegExp = regexp.MustCompile(`^\d+$`)
+	userIDRegExp  = regexp.MustCompile(`^\d+$`)
+	imageIDRegExp = regexp.MustCompile(`^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[1-5][a-fA-F0-9]{3}-[89abAB][a-fA-F0-9]{3}-[a-fA-F0-9]{12}$`)
 )
 
 func New(rc caching.CacheHandler, us userservice.UserService, is imageservice.UserImageService, l *logger.Logger) *Controller {
@@ -216,16 +222,20 @@ func (uc *Controller) FindAllUsers(c Context) {
 	c.JSON(http.StatusOK, &models.Response{Data: user})
 }
 
-func (uc *Controller) AddUserImage(c Context) {
-	body, err := io.ReadAll(c.Copy().Request.Body)
+func (uc *Controller) CreateUserImage(c Context) {
+	userID := c.GetHeader(config.HeaderUserID)
+	if !(userIDRegExp.MatchString(userID)) {
+		uc.handleError(c, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("bad request")))
+		return
+	}
 
+	body, err := io.ReadAll(c.Copy().Request.Body)
 	if err != nil {
 		uc.handleError(c, err)
 		return
 	}
 
 	rp := &requestparser.RequestParser{
-		Log:         uc.log,
 		Body:        body,
 		ContentType: c.GetHeader(config.HeaderContentType),
 	}
@@ -236,13 +246,105 @@ func (uc *Controller) AddUserImage(c Context) {
 		return
 	}
 
-	resp, err := uc.imageService.SaveImage(c.GetHeader(config.HeaderUserID), req)
+	resp, err := uc.imageService.SaveUserImage(userID, req)
 	if err != nil {
 		uc.handleError(c, err)
 		return
 	}
 
 	c.JSON(http.StatusCreated, resp)
+}
+
+func (uc *Controller) GetUserImage(c Context) {
+	imageID := c.Param("id")
+	if !(imageIDRegExp.MatchString(imageID)) {
+		uc.handleError(c, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("bad request")))
+		return
+	}
+
+	userID := c.GetHeader(config.HeaderUserID)
+	if !(userIDRegExp.MatchString(userID)) {
+		uc.handleError(c, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("bad request")))
+		return
+	}
+
+	resp, err := uc.imageService.GetByUserIDImageID(userID, imageID)
+	if err != nil {
+		uc.handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+func (uc *Controller) GetAllUserImages(c Context) {
+
+	userID := c.GetHeader(config.HeaderUserID)
+	if !(userIDRegExp.MatchString(userID)) {
+		uc.handleError(c, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("bad request")))
+		return
+	}
+
+	qpLastKey := c.Query(config.QueryParamLastKey)
+	qpTakenAt := c.Query(config.QueryParamlastKeyDate)
+	qpLimit := c.Query(config.QueryParamLimit)
+	limit, err := strconv.ParseInt(qpLimit, 10, 32)
+	if err != nil {
+		limit = DefaultPageItemLimit
+	}
+
+	request := models.PaginatedInput{
+		UserID:           userID,
+		LastImageID:      qpLastKey,
+		LastImageTakenAt: qpTakenAt,
+		Limit:            int32(limit),
+	}
+
+	resp, err := uc.imageService.GetAllUserImages(request)
+	if err != nil {
+		uc.handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+func (uc *Controller) DeleteUserImage(c Context) {
+	imageID := c.Param("id")
+	if !(imageIDRegExp.MatchString(imageID)) {
+		uc.handleError(c, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("bad request")))
+		return
+	}
+
+	userID := c.GetHeader(config.HeaderUserID)
+	if !(userIDRegExp.MatchString(userID)) {
+		uc.handleError(c, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("bad request")))
+		return
+	}
+
+	err := uc.imageService.DeleteByUserIDImageID(userID, imageID)
+	if err != nil {
+		uc.handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusAccepted, nil)
+}
+
+func (uc *Controller) DeleteAllUserImages(c Context) {
+	userID := c.GetHeader(config.HeaderUserID)
+	if !(userIDRegExp.MatchString(userID)) {
+		uc.handleError(c, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("bad request")))
+		return
+	}
+
+	err := uc.imageService.DeleteAllByUserID(userID)
+	if err != nil {
+		uc.handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusAccepted, nil)
 }
 
 func (uc *Controller) validateInput(input models.Request) error {

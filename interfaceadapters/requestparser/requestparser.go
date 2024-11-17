@@ -2,6 +2,7 @@ package requestparser
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"mime"
@@ -10,19 +11,18 @@ import (
 	"strings"
 
 	"github.com/rahul-aut-ind/service-user/domain/errors"
-	"github.com/rahul-aut-ind/service-user/pkg/logger"
+	"github.com/rahul-aut-ind/service-user/domain/models"
 )
 
 type (
 	RequestParser struct {
-		Log         *logger.Logger
 		Body        []byte
 		ContentType string
 	}
 
 	MultiPartData struct {
-		Files  map[string]*Image
-		Values map[string]*string
+		Image    *Image
+		Metadata *models.Metadata
 	}
 
 	Image struct {
@@ -31,64 +31,75 @@ type (
 	}
 )
 
-var allowedExt = []string{".jpg"}
+const (
+	QueryParamBoundary = "boundary"
+	ImageKey           = "image"
+	MetadataKey        = "metadata"
+	JPGImageExtension  = ".jpg"
+)
+
+var (
+	allowedExt    = []string{JPGImageExtension}
+	mediaExtRegEx = regexp.MustCompile(`\.[0-9a-z]+$`)
+)
 
 // ParseMultipart parses the multipart form data and returns MultiPartData
 func (rp *RequestParser) ParseMultipart() (*MultiPartData, error) {
 	_, params, err := mime.ParseMediaType(rp.ContentType)
 	if err != nil {
-		return nil, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("could not parse media"))
+		return nil, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("could not parse media %s", rp.ContentType))
 	}
-	b := params["boundary"]
-	if b == "" {
+
+	boundary := params[QueryParamBoundary]
+	if boundary == "" {
 		return nil, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("could not parse media"))
 	}
 
-	reader := bytes.NewReader(rp.Body)
-	multipartReader := multipart.NewReader(reader, b)
-	formData, err := multipartReader.ReadForm(10 << 20)
+	formData, err := multipart.NewReader(bytes.NewReader(rp.Body), boundary).ReadForm(10 << 20)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(formData.File) == 0 {
-		return nil, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("no files found"))
+	data := &MultiPartData{}
+
+	if err := rp.parseFiles(formData, data); err != nil {
+		return nil, err
 	}
-	if len(formData.Value) == 0 {
-		return nil, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("no values found"))
+	if err := rp.parseValues(formData, data); err != nil {
+		return nil, err
 	}
 
-	res := &MultiPartData{}
-	res.Files = make(map[string]*Image, len(formData.File))
-	res.Values = make(map[string]*string, len(formData.Value))
+	return data, nil
+}
 
-	for k, v := range formData.File {
-		// we only handle one file per key
-		f, err := rp.getFileBytes(v[0])
+func (rp *RequestParser) parseFiles(formData *multipart.Form, data *MultiPartData) error {
+	if fileHeaders, exists := formData.File[ImageKey]; exists && len(fileHeaders) > 0 {
+		fileBytes, err := rp.getFileBytes(fileHeaders[0])
 		if err != nil {
-			return nil, err
+			return err
 		}
-
-		ext, err := rp.getExt(v[0].Filename)
+		ext, err := rp.getExt(fileHeaders[0].Filename)
 		if err != nil {
-			return nil, err
+			return err
 		}
+		data.Image = &Image{Bytes: fileBytes, Ext: *ext}
+	} else {
+		return errors.New(errors.ErrCodeBadRequest, fmt.Errorf("image not found, please check request params"))
+	}
+	return nil
+}
 
-		p := Image{
-			Bytes: f,
-			Ext:   *ext,
+func (rp *RequestParser) parseValues(formData *multipart.Form, data *MultiPartData) error {
+	if metadataValues, exists := formData.Value[MetadataKey]; exists && len(metadataValues) > 0 {
+		metadata := &models.Metadata{}
+		if err := json.Unmarshal([]byte(metadataValues[0]), metadata); err != nil {
+			return errors.New(errors.ErrCodeGeneric, fmt.Errorf("err unmarshalling metadata"))
 		}
-
-		res.Files[k] = &p
+		data.Metadata = metadata
+	} else {
+		return errors.New(errors.ErrCodeBadRequest, fmt.Errorf("metadata not found, please check request params"))
 	}
-
-	for k, v := range formData.Value {
-		// we only handle one value per key
-		vs := v[0]
-		res.Values[k] = &vs
-	}
-
-	return res, nil
+	return nil
 }
 
 // getFileBytes reads the file from the multipart form
@@ -98,47 +109,31 @@ func (rp *RequestParser) getFileBytes(file *multipart.FileHeader) ([]byte, error
 		_ = f.Close()
 	}(f)
 	if err != nil {
-		rp.Log.Errorf("error opening file %v", err)
 		return nil, errors.New(errors.ErrCodeGeneric, fmt.Errorf("error opening file"))
 	}
 	fd, err := io.ReadAll(f)
 	if err != nil {
-		rp.Log.Errorf("error reading file %v", err)
 		return nil, errors.New(errors.ErrCodeGeneric, fmt.Errorf("error reading file"))
 	}
 
 	return fd, nil
 }
 
-/*
-getExt returns the extension of a file
-it uses regex to get the extension of a file following last (.) in the filename
-*/
+// getExt returns the extension of a file.
 func (rp *RequestParser) getExt(filename string) (*string, error) {
-	if filename == "" {
-		return nil, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("filename is empty"))
+	ext := strings.ToLower(mediaExtRegEx.FindString(filename))
+	if ext == "" || !contains(allowedExt, ext) {
+		return nil, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("file extension not allowed or not found"))
 	}
-	re := regexp.MustCompile(`\.[0-9a-z]+$`)
-	ext := strings.ToLower(re.FindString(filename))
-
-	if ext == "" {
-		return nil, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("no extension found in filename"))
-	}
-
-	if !contains(allowedExt, ext) {
-		return nil, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("file extension not allowed"))
-	}
-
 	return &ext, nil
 }
 
 // contains checks if a string is in a list of strings
-func contains(list []string, ext string) bool {
+func contains(list []string, item string) bool {
 	for _, e := range list {
-		if e == ext {
+		if e == item {
 			return true
 		}
 	}
 	return false
-
 }

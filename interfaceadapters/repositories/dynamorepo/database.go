@@ -18,12 +18,12 @@ import (
 
 type (
 	DataHandler interface {
-		CreateOrUpdate(p *models.UserImage) error
-		GetAllByUserIDPaginated(req models.PaginatedInput) (*models.UserImageResult, error)
-		getAllByUserID(uID string) ([]models.UserImage, error)
-		GetByImgID(uID, imgID string) (*models.UserImage, error)
-		DeleteByImgID(uID, imgID string) error
-		DeleteAllImagesByUserID(uID string) error
+		CreateOrUpdateImage(p *models.UserImage) error
+		GetAllImagesPaginated(req models.PaginatedInput) (*models.UserImageResult, error)
+		getAllImages(uID string) ([]models.UserImage, error)
+		GetImage(uID, imgID string) (*models.UserImage, error)
+		DeleteImage(uID, imgID string) error
+		DeleteAllImages(uID string) error
 	}
 
 	DynamoDBRepo struct {
@@ -49,7 +49,7 @@ func createClient(cfg *aws.Config) *dynamodb.Client {
 }
 
 // CreateOrUpdate creates or updates an image in the db
-func (d *DynamoDBRepo) CreateOrUpdate(req *models.UserImage) error {
+func (d *DynamoDBRepo) CreateOrUpdateImage(req *models.UserImage) error {
 	item, err := attributevalue.MarshalMap(req)
 	if err != nil {
 		d.Log.Error("error marshaling input", err)
@@ -69,7 +69,7 @@ func (d *DynamoDBRepo) CreateOrUpdate(req *models.UserImage) error {
 }
 
 // GetByScanID returns an image by its ID and user ID
-func (d *DynamoDBRepo) GetByImgID(uID, imgID string) (*models.UserImage, error) {
+func (d *DynamoDBRepo) GetImage(uID, imgID string) (*models.UserImage, error) {
 	input := &dynamodb.GetItemInput{
 		TableName: &d.TableName,
 		Key: map[string]types.AttributeValue{
@@ -102,15 +102,15 @@ func (d *DynamoDBRepo) GetByImgID(uID, imgID string) (*models.UserImage, error) 
 }
 
 // DeleteByScanID soft deletes an image
-func (d *DynamoDBRepo) DeleteByImgID(uID, imageID string) error {
-	imageResult, err := d.GetByImgID(uID, imageID)
+func (d *DynamoDBRepo) DeleteImage(uID, imageID string) error {
+	imageResult, err := d.GetImage(uID, imageID)
 	if err != nil {
 		return err
 	}
 
 	imageResult.IsDeleted = true
 	imageResult.UpdatedAt = time.Now()
-	err = d.CreateOrUpdate(imageResult)
+	err = d.CreateOrUpdateImage(imageResult)
 	if err != nil {
 		d.Log.Errorf("error deleting image %s of user %s in DB. error :: %v", imageID, uID, err)
 		return err
@@ -120,7 +120,7 @@ func (d *DynamoDBRepo) DeleteByImgID(uID, imageID string) error {
 }
 
 // GetAllByUserIDPaginated returns all non-deleted scans for a user in paginated manner
-func (d *DynamoDBRepo) GetAllByUserIDPaginated(req models.PaginatedInput) (*models.UserImageResult, error) {
+func (d *DynamoDBRepo) GetAllImagesPaginated(req models.PaginatedInput) (*models.UserImageResult, error) {
 	input := &dynamodb.QueryInput{
 		TableName:              &d.TableName,
 		IndexName:              aws.String(GlobalSecondaryIndex),
@@ -177,7 +177,7 @@ func (d *DynamoDBRepo) GetAllByUserIDPaginated(req models.PaginatedInput) (*mode
 }
 
 // GetAllByUserID returns all non-deleted images for a user
-func (d *DynamoDBRepo) getAllByUserID(uID string) ([]models.UserImage, error) {
+func (d *DynamoDBRepo) getAllImages(uID string) ([]models.UserImage, error) {
 	input := &dynamodb.QueryInput{
 		TableName:              &d.TableName,
 		IndexName:              aws.String("UserIDTakenAtIndex"),
@@ -207,8 +207,8 @@ func (d *DynamoDBRepo) getAllByUserID(uID string) ([]models.UserImage, error) {
 }
 
 // DeleteAllScansByUserID soft deletes all images for a user
-func (d *DynamoDBRepo) DeleteAllImagesByUserID(uID string) error {
-	imageResults, err := d.getAllByUserID(uID)
+func (d *DynamoDBRepo) DeleteAllImages(uID string) error {
+	imageResults, err := d.getAllImages(uID)
 	if err != nil {
 		return err
 	}
@@ -217,7 +217,7 @@ func (d *DynamoDBRepo) DeleteAllImagesByUserID(uID string) error {
 		imageResult := &imageResults[i]
 		imageResult.IsDeleted = true
 		imageResult.UpdatedAt = time.Now()
-		err := d.CreateOrUpdate(imageResult)
+		err := d.CreateOrUpdateImage(imageResult)
 		if err != nil {
 			d.Log.Errorf("error deleting images of user %s in DB. error :: %v", uID, err)
 			return err

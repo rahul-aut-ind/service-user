@@ -2,7 +2,6 @@ package imageservice
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -18,10 +17,10 @@ import (
 
 type (
 	UserImageService interface {
-		SaveImage(uID string, req *requestparser.MultiPartData) (*models.UploadResponse, error)
-		GetAllImagesByUserID(req models.PaginatedInput) (*models.PaginatedImageResponse, error)
-		GetByImageID(uID, imageID string) (*models.ImageResponse, error)
-		DeleteByImageID(uID, imageID string) error
+		SaveUserImage(uID string, req *requestparser.MultiPartData) (*models.UploadResponse, error)
+		GetAllUserImages(req models.PaginatedInput) (*models.PaginatedImageResponse, error)
+		GetByUserIDImageID(uID, imageID string) (*models.ImageResponse, error)
+		DeleteByUserIDImageID(uID, imageID string) error
 		DeleteAllByUserID(uID string) error
 	}
 
@@ -36,28 +35,14 @@ func New(db dynamorepo.DataHandler, s3 s3repo.S3Handler, l *logger.Logger) *Serv
 	return &Service{db, s3, l}
 }
 
-func (s *Service) SaveImage(uID string, req *requestparser.MultiPartData) (*models.UploadResponse, error) {
-	image := req.Files[models.ImageKey]
-	if image == nil {
-		return nil, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("image not found, please check request params"))
-	}
-
-	mv := req.Values[models.MetadataKey]
-	if mv == nil {
-		return nil, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("metadata not found, please check request params"))
-	}
-	metadata := &models.Metadata{}
-	err := json.Unmarshal([]byte(*mv), metadata)
-	if err != nil {
-		return nil, errors.New(errors.ErrCodeBadRequest, fmt.Errorf("could not parse metadata, please check request params"))
-	}
+func (s *Service) SaveUserImage(uID string, req *requestparser.MultiPartData) (*models.UploadResponse, error) {
 
 	imageID, err := uuid.NewUUID()
 	if err != nil {
 		return nil, errors.New(errors.ErrCodeGeneric, fmt.Errorf("uuid generation failed"))
 	}
 
-	s3Path, err := s.s3.Save(uID, imageID, image.Ext, &image.Bytes)
+	s3Path, err := s.s3.Save(uID, imageID, req.Image.Ext, &req.Image.Bytes)
 	if err != nil {
 		return nil, errors.New(errors.ErrCodeGeneric, fmt.Errorf("error uploading image to S3"))
 	}
@@ -67,11 +52,11 @@ func (s *Service) SaveImage(uID string, req *requestparser.MultiPartData) (*mode
 		ImageID:   imageID.String(),
 		Path:      s3Path,
 		IsDeleted: false,
-		TakenAt:   metadata.TakenAt,
+		TakenAt:   req.Metadata.TakenAt,
 		UpdatedAt: time.Now(),
 	}
 
-	err = s.db.CreateOrUpdate(ui)
+	err = s.db.CreateOrUpdateImage(ui)
 	if err != nil {
 		return nil, err
 	}
@@ -79,8 +64,8 @@ func (s *Service) SaveImage(uID string, req *requestparser.MultiPartData) (*mode
 	return &models.UploadResponse{ID: imageID.String()}, nil
 }
 
-func (s *Service) GetAllImagesByUserID(req models.PaginatedInput) (*models.PaginatedImageResponse, error) {
-	images, err := s.db.GetAllByUserIDPaginated(req)
+func (s *Service) GetAllUserImages(req models.PaginatedInput) (*models.PaginatedImageResponse, error) {
+	images, err := s.db.GetAllImagesPaginated(req)
 
 	if err != nil {
 		return nil, err
@@ -102,9 +87,9 @@ func (s *Service) GetAllImagesByUserID(req models.PaginatedInput) (*models.Pagin
 	}, nil
 }
 
-func (s *Service) GetByImageID(uID, imageID string) (*models.ImageResponse, error) {
+func (s *Service) GetByUserIDImageID(uID, imageID string) (*models.ImageResponse, error) {
 
-	data, err := s.db.GetByImgID(uID, imageID)
+	data, err := s.db.GetImage(uID, imageID)
 	if err != nil {
 		return nil, err
 	}
@@ -116,12 +101,12 @@ func (s *Service) GetByImageID(uID, imageID string) (*models.ImageResponse, erro
 	}, nil
 }
 
-func (s *Service) DeleteByImageID(uID, imageID string) error {
-	return s.parallelDeleteTasks(func() error { return s.s3.Delete(uID, imageID) }, func() error { return s.db.DeleteByImgID(uID, imageID) })
+func (s *Service) DeleteByUserIDImageID(uID, imageID string) error {
+	return s.parallelDeleteTasks(func() error { return s.s3.Delete(uID, imageID) }, func() error { return s.db.DeleteImage(uID, imageID) })
 }
 
 func (s *Service) DeleteAllByUserID(uID string) error {
-	return s.parallelDeleteTasks(func() error { return s.s3.DeleteAll(uID) }, func() error { return s.db.DeleteAllImagesByUserID(uID) })
+	return s.parallelDeleteTasks(func() error { return s.s3.DeleteAll(uID) }, func() error { return s.db.DeleteAllImages(uID) })
 }
 
 func (s *Service) parallelDeleteTasks(deleteFuncs ...func() error) error {
