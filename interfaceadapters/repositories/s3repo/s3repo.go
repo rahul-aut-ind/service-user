@@ -50,14 +50,6 @@ func initializeClient(cfg *aws.Config, connString string) *s3.Client {
 func (r *S3Repo) Save(uID string, imageID uuid.UUID, ext string, d *[]byte) (string, error) {
 	f := r.getPath(uID, fmt.Sprintf("%s%s", imageID.String(), ext))
 
-	// r.log.Infof("Save path %v data %+v", f, len(*d))
-	// buckets, err := r.client.ListBuckets(context.Background(), &s3.ListBucketsInput{})
-	// if err != nil {
-	// 	r.log.Fatalf("failed to list S3 buckets:%v", err)
-	// }
-	// for _, bucket := range buckets.Buckets {
-	// 	r.log.Infof("bucket list :%v", *bucket.Name)
-	// }
 	_, err := r.client.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket: &r.bucket,
 		Key:    &f,
@@ -69,6 +61,17 @@ func (r *S3Repo) Save(uID string, imageID uuid.UUID, ext string, d *[]byte) (str
 	}
 
 	return f, nil
+}
+
+// nolint:unused // needed for local debug sometimes, not part of functionality
+func (r *S3Repo) logBucketList() {
+	buckets, err := r.client.ListBuckets(context.Background(), &s3.ListBucketsInput{})
+	if err != nil {
+		r.log.Fatalf("failed to list S3 buckets:%v", err)
+	}
+	for _, bucket := range buckets.Buckets {
+		r.log.Infof("bucket list :%v", *bucket.Name)
+	}
 }
 
 func (r *S3Repo) getPath(uID, imageID string) string {

@@ -58,7 +58,7 @@ func (rc *RedisClient) Get(ctx context.Context, key string) (string, error) {
 	return res, nil
 }
 
-func (rc *RedisClient) Set(ctx context.Context, key string, value string, ttl time.Duration) error {
+func (rc *RedisClient) Set(ctx context.Context, key, value string, ttl time.Duration) error {
 	_, err := rc.redisClient.Set(ctx, key, value, ttl).Result()
 	if err != nil {
 		rc.log.Infof("error setting %s :: err %s", key, err)
