@@ -10,6 +10,11 @@ lint:
 test: deps
 	go test ./...
 
+test-coverage:
+	go test ./... -coverprofile=coverage.out
+	sleep 1
+	go tool cover -html=coverage.out -o coverage.html
+
 deps:
 	wire ./...
 
@@ -48,7 +53,9 @@ localstack-up:
 	docker run --name=aws-localstack -d -p 4566:4566 -p 4571:4571 localstack/localstack
 	echo "localstack initialized"
 
-local-dynamo-setup: local-aws-setup
+local-aws-setup: localstack-up local-aws-setup local-dynamo-setup local-s3-setup
+
+local-dynamo-setup:
 	aws --endpoint-url=http://localhost:4566 dynamodb create-table \
         --table-name user-images \
         --attribute-definitions \
@@ -64,7 +71,7 @@ local-dynamo-setup: local-aws-setup
             "[{\"IndexName\": \"UserIDTakenAtIndex\", \"KeySchema\":[{\"AttributeName\":\"UserID\",\"KeyType\":\"HASH\"}, {\"AttributeName\":\"TakenAt\",\"KeyType\":\"RANGE\"}],\"Projection\":{\"ProjectionType\":\"ALL\"}}]" \
         --table-class STANDARD
 
-local-s3-setup: localstack-up local-aws-setup
+local-s3-setup:
 	aws --endpoint-url=http://localhost:4566 s3 mb s3://user-images
 
 local-aws-setup:
@@ -79,7 +86,7 @@ debug-build-local:
 	GOOS=linux GOARCH=arm64/v8 cd ./cmd/service-user && go build -a -o ../../dist/service
 	cd ../..
 
-debug-run: lint build-local
+debug-run: lint debug-build-local
 	./dist/service
 
 debug-service: deps lint

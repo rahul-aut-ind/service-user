@@ -27,6 +27,7 @@ issues:
   exclude-files:
     - swagger.go
     - _test.go
+    - _it.go
   exclude-rules:
     - text: "not declared by package utf8"
       linters:
