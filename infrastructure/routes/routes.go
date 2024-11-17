@@ -51,6 +51,6 @@ func (r *Routes) Setup() {
 		GET("", func(c *gin.Context) { r.controller.GetAllUserImages(c) }).
 		// delete an user image
 		DELETE("/:id", func(c *gin.Context) { r.controller.DeleteUserImage(c) }).
-		// delete an user image
+		// deletes all user images
 		DELETE("", func(c *gin.Context) { r.controller.DeleteAllUserImages(c) })
 }
