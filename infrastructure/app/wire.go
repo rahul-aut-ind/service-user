@@ -6,13 +6,13 @@ package app
 import (
 	"github.com/rahul-aut-ind/service-user/infrastructure/caching"
 	"github.com/rahul-aut-ind/service-user/infrastructure/routes"
+	"github.com/rahul-aut-ind/service-user/interfaceadapters/controllers"
+	usercontroller2 "github.com/rahul-aut-ind/service-user/interfaceadapters/controllers"
 	"github.com/rahul-aut-ind/service-user/interfaceadapters/middlewares"
 	"github.com/rahul-aut-ind/service-user/interfaceadapters/repositories/dynamorepo"
 	"github.com/rahul-aut-ind/service-user/interfaceadapters/repositories/mysqlrepo"
 	"github.com/rahul-aut-ind/service-user/interfaceadapters/repositories/s3repo"
 	"github.com/rahul-aut-ind/service-user/interfaceadapters/requesthandler"
-	"github.com/rahul-aut-ind/service-user/interfaceadapters/usercontroller"
-	usercontroller2 "github.com/rahul-aut-ind/service-user/interfaceadapters/usercontroller"
 	"github.com/rahul-aut-ind/service-user/internal/awsconfig"
 	"github.com/rahul-aut-ind/service-user/internal/config"
 	"github.com/rahul-aut-ind/service-user/pkg/logger"
@@ -53,7 +53,7 @@ func New(e *gin.Engine) (*App, error) {
 		imageservice.Wired,
 		wire.Bind(new(imageservice.UserImageService), new(*imageservice.Service)),
 
-		usercontroller.Wired,
+		controllers.Wired,
 		wire.Bind(new(usercontroller2.Handler), new(*usercontroller2.Controller)),
 
 		routes.Wired,

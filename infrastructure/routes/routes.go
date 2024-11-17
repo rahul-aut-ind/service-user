@@ -2,9 +2,9 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
+	controllers "github.com/rahul-aut-ind/service-user/interfaceadapters/controllers"
 	"github.com/rahul-aut-ind/service-user/interfaceadapters/middlewares"
 	handlers "github.com/rahul-aut-ind/service-user/interfaceadapters/requesthandler"
-	controllers "github.com/rahul-aut-ind/service-user/interfaceadapters/usercontroller"
 )
 
 type Routes struct {

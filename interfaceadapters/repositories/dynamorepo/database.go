@@ -48,7 +48,6 @@ func createClient(cfg *aws.Config) *dynamodb.Client {
 	return dynamodb.NewFromConfig(*cfg)
 }
 
-// CreateOrUpdate creates or updates an image in the db
 func (d *DynamoDBRepo) CreateOrUpdateImage(req *models.UserImage) error {
 	item, err := attributevalue.MarshalMap(req)
 	if err != nil {
@@ -68,7 +67,6 @@ func (d *DynamoDBRepo) CreateOrUpdateImage(req *models.UserImage) error {
 	return nil
 }
 
-// GetByScanID returns an image by its ID and user ID
 func (d *DynamoDBRepo) GetImage(uID, imgID string) (*models.UserImage, error) {
 	input := &dynamodb.GetItemInput{
 		TableName: &d.TableName,
@@ -101,7 +99,6 @@ func (d *DynamoDBRepo) GetImage(uID, imgID string) (*models.UserImage, error) {
 	return &imageResult, nil
 }
 
-// DeleteByScanID soft deletes an image
 func (d *DynamoDBRepo) DeleteImage(uID, imageID string) error {
 	imageResult, err := d.GetImage(uID, imageID)
 	if err != nil {
@@ -119,7 +116,6 @@ func (d *DynamoDBRepo) DeleteImage(uID, imageID string) error {
 	return nil
 }
 
-// GetAllByUserIDPaginated returns all non-deleted scans for a user in paginated manner
 func (d *DynamoDBRepo) GetAllImagesPaginated(req models.PaginatedInput) (*models.UserImageResult, error) {
 	input := &dynamodb.QueryInput{
 		TableName:              &d.TableName,
@@ -148,14 +144,14 @@ func (d *DynamoDBRepo) GetAllImagesPaginated(req models.PaginatedInput) (*models
 		return nil, errors.New(errors.ErrCodeGeneric, fmt.Errorf("error querying db"))
 	}
 
-	var scanResults []models.UserImage
-	err = attributevalue.UnmarshalListOfMaps(result.Items, &scanResults)
+	var imageResults []models.UserImage
+	err = attributevalue.UnmarshalListOfMaps(result.Items, &imageResults)
 	if err != nil {
 		d.Log.Error("error unmarshaling db response", err)
 		return nil, errors.New(errors.ErrCodeGeneric, fmt.Errorf("error unmarshaling db response"))
 	}
 	response := &models.UserImageResult{
-		UserImages: scanResults,
+		UserImages: imageResults,
 	}
 
 	if result.LastEvaluatedKey != nil {
@@ -176,7 +172,6 @@ func (d *DynamoDBRepo) GetAllImagesPaginated(req models.PaginatedInput) (*models
 	return response, nil
 }
 
-// GetAllByUserID returns all non-deleted images for a user
 func (d *DynamoDBRepo) getAllImages(uID string) ([]models.UserImage, error) {
 	input := &dynamodb.QueryInput{
 		TableName:              &d.TableName,
@@ -206,7 +201,6 @@ func (d *DynamoDBRepo) getAllImages(uID string) ([]models.UserImage, error) {
 	return imageResults, nil
 }
 
-// DeleteAllScansByUserID soft deletes all images for a user
 func (d *DynamoDBRepo) DeleteAllImages(uID string) error {
 	imageResults, err := d.getAllImages(uID)
 	if err != nil {

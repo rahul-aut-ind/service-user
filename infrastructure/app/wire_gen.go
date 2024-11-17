@@ -10,12 +10,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rahul-aut-ind/service-user/infrastructure/caching"
 	"github.com/rahul-aut-ind/service-user/infrastructure/routes"
+	"github.com/rahul-aut-ind/service-user/interfaceadapters/controllers"
 	"github.com/rahul-aut-ind/service-user/interfaceadapters/middlewares"
 	"github.com/rahul-aut-ind/service-user/interfaceadapters/repositories/dynamorepo"
 	"github.com/rahul-aut-ind/service-user/interfaceadapters/repositories/mysqlrepo"
 	"github.com/rahul-aut-ind/service-user/interfaceadapters/repositories/s3repo"
 	"github.com/rahul-aut-ind/service-user/interfaceadapters/requesthandler"
-	"github.com/rahul-aut-ind/service-user/interfaceadapters/usercontroller"
 	"github.com/rahul-aut-ind/service-user/internal/awsconfig"
 	"github.com/rahul-aut-ind/service-user/internal/config"
 	"github.com/rahul-aut-ind/service-user/pkg/logger"
@@ -36,7 +36,7 @@ func New(e *gin.Engine) (*App, error) {
 	dynamoDBRepo := dynamorepo.New(awsConfig, env, loggerLogger)
 	s3Repo := s3repo.New(loggerLogger, awsConfig, env)
 	imageserviceService := imageservice.New(dynamoDBRepo, s3Repo, loggerLogger)
-	controller := usercontroller.New(redisClient, service, imageserviceService, loggerLogger)
+	controller := controllers.New(redisClient, service, imageserviceService, loggerLogger)
 	validator := middlewares.New(loggerLogger)
 	routesRoutes := routes.New(requestHandler, controller, validator)
 	app := newApp(routesRoutes, env, loggerLogger, e)

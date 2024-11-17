@@ -1,7 +1,7 @@
 //go:build wireinject
 // +build wireinject
 
-package usercontroller
+package controllers
 
 import (
 	"github.com/google/wire"
