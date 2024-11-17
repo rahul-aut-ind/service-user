@@ -27,7 +27,6 @@ type Logger struct {
 func New() *Logger {
 	var logger *zap.Logger
 
-	// logger, _ = zap.NewDevelopment() // for Development env
 	logger, _ = zap.NewProduction()
 	sugarLogger := logger.Sugar()
 

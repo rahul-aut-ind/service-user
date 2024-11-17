@@ -4,12 +4,12 @@ import (
 	"fmt"
 
 	"github.com/rahul-aut-ind/service-user/domain/models"
-	"github.com/rahul-aut-ind/service-user/interfaceadapters/repositories/userrepo"
+	"github.com/rahul-aut-ind/service-user/interfaceadapters/repositories/mysqlrepo"
 	"github.com/rahul-aut-ind/service-user/pkg/logger"
 )
 
 type (
-	Services interface {
+	UserService interface {
 		GetUserWithID(id string) (*models.User, error)
 		GetAllUsers() ([]models.User, error)
 		AddUser(u *models.User) (*models.User, error)
@@ -19,12 +19,12 @@ type (
 	}
 
 	Service struct {
-		db  userrepo.DataHandler
+		db  mysqlrepo.DataHandler
 		log *logger.Logger
 	}
 )
 
-func New(r userrepo.DataHandler, l *logger.Logger) *Service {
+func New(r mysqlrepo.DataHandler, l *logger.Logger) *Service {
 	return &Service{db: r, log: l}
 }
 

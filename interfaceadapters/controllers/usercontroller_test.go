@@ -1,9 +1,10 @@
-package usercontroller
+package controllers
 
 import (
 	"encoding/json"
 	"fmt"
 	"github.com/rahul-aut-ind/service-user/pkg/logger"
+	"github.com/rahul-aut-ind/service-user/services/imageservice"
 	"net/http"
 	"testing"
 
@@ -31,7 +32,8 @@ func TestController_FindUser_Success(t *testing.T) {
 	contextMoc.On("JSON", http.StatusOK, &models.Response{Data: testUserResp})
 
 	testService := userservice.New(repoMoc, logger.New())
-	testContrlr := New(cacheMoc, testService, logger.New())
+	testImageService := imageservice.New(nil, nil, logger.New())
+	testContrlr := New(cacheMoc, testService, testImageService, logger.New())
 
 	cacheMoc.On("Get", contextMoc, "1").Return("", errors.New("err : %s", fmt.Errorf("no data in cache")))
 	repoMoc.On("FindRecord", "1").Return(testUserResp, nil)
@@ -62,7 +64,8 @@ func TestController_FindUser_NoRecordsErr(t *testing.T) {
 	contextMoc.On("JSON", http.StatusNotFound, respErr)
 
 	testService := userservice.New(repoMoc, logger.New())
-	testContrlr := New(cacheMoc, testService, logger.New())
+	testImageService := imageservice.New(nil, nil, logger.New())
+	testContrlr := New(cacheMoc, testService, testImageService, logger.New())
 
 	cacheMoc.On("Get", contextMoc, "9999").Return("", fmt.Errorf("no data in cache"))
 	repoMoc.On("FindRecord", "9999").Return(nil, repoFindErr)
@@ -91,7 +94,8 @@ func TestController_FindUser_RegexBadReq(t *testing.T) {
 	contextMoc.On("JSON", http.StatusBadRequest, respErr)
 
 	testService := userservice.New(repoMoc, logger.New())
-	testContrlr := New(cacheMoc, testService, logger.New())
+	testImageService := imageservice.New(nil, nil, logger.New())
+	testContrlr := New(cacheMoc, testService, testImageService, logger.New())
 
 	// When
 	testContrlr.FindUser(contextMoc)
@@ -117,7 +121,8 @@ func TestController_FindUser_RepoErr(t *testing.T) {
 	contextMoc.On("JSON", http.StatusInternalServerError, respErr)
 
 	testService := userservice.New(repoMoc, logger.New())
-	testContrlr := New(cacheMoc, testService, logger.New())
+	testImageService := imageservice.New(nil, nil, logger.New())
+	testContrlr := New(cacheMoc, testService, testImageService, logger.New())
 
 	cacheMoc.On("Get", contextMoc, "1").Return("", fmt.Errorf("no data in cache"))
 	repoMoc.On("FindRecord", "1").Return(nil, repoErr)

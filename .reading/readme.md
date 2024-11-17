@@ -18,6 +18,10 @@ The repository is having an additional integration test to validate actual data 
 
 ### Scalability Considerations:
 
+##### concurrent execution
+
+The service employs efficient concurrent programming practices by utilizing go routines for tasks that are mutually exclusive and can be performed on different infra components. This enables blazing fast processing of user's images while persisting image data and its record in S3 and dynamoDB. Also, the delete operations are optimized to concurrently delete from the different source repos. 
+
 ##### caching layer
 
 The service is expected to handle 30k requests per minute with a latency of < 100ms. To reduce request latency, I have already put in place redis cache layer on the endpoints. As of now the controller is taking care of CRUD from the Redis cache with a default TTL using write-through strategy or proactive strategy where in after every update/write operation I am updating the cache.
@@ -29,6 +33,7 @@ I have included max open connections and max idle connections in gorm configurat
 ##### database indexes
 
 For the dummy service that I created and the simplistic approach I have taken to query the database, gorm would go ahead and create an Index on the ID column which is the primary key of the table besides a few others like email and its default deleted_at. As the functionalities grow and there is need of querying data with more columns, to improve efficiency of queries I would add more indexes as required on the gorm model definition. This will ensure that the required indices are created when gorm autoMigrates the model/table.
+For the DynamoDB table, a global secondary index is created which not just facilitates in getting sorted history of user's image data but also ensures better query response.
 
 ##### database read replicas
 
@@ -36,7 +41,11 @@ I would expect this service user to be more optimally required to query specific
 
 ##### autoscaling
 
-Assuming that our service is deployed on a k8s cluster, depending on the iac tooling where we define our hpa strategy, we specify a min and max replica for the service. We keep the strategy of hpa to scale up if cpu utilization is 80% or memory utilization is 80%.
+Assuming that this service is deployed on a k8s cluster, depending on the iac tooling where we define our hpa strategy, we specify a min and max replica for the service. We keep the strategy of hpa to scale up if cpu utilization is 80% or memory utilization is 80%.
+
+##### pagination in response
+
+I have implemented paginated response for getting user's images history. This approach ensures that a ton of data is not fetched from DB overwhelming it. This should be done for any/all endpoints where volume of data is expected to be more.
 
 ---
 
@@ -64,5 +73,9 @@ I would integrate with observability tools like New Relic or data dog using thei
 ##### authentication and authorization checks
 
 I would not want my service to take care of auth checks besides the functionality of say checking a few security headers that a Gateway service would add after it completes authentication and authorization checks. The checking of security headers etc would be done in a middleware service.
+
+##### adding more unit tests
+
+I would like to add more unit tests and increase test coverage.
 
 ---

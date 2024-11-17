@@ -1,6 +1,9 @@
 linters-settings:
   govet:
-  shadow:
+    enable-all: true
+    disable:
+      - shadow
+      - fieldalignment
   gocyclo:
     min-complexity: 10
   dupl:
@@ -19,21 +22,12 @@ linters-settings:
       - performance
       - style
       - experimental
-    disabled-checks:
-      - dupImport # https://github.com/go-critic/go-critic/issues/845
-      - ifElseChain
-      - octalLiteral
-      - wrapperFunc
-      - commentedOutCode
-      - hugeParam
-      - rangeValCopy
-      - typeDefFirst
-      - paramTypeCombine
 
 issues:
   exclude-files:
     - swagger.go
     - _test.go
+    - _it.go
   exclude-rules:
     - text: "not declared by package utf8"
       linters:
@@ -82,9 +76,3 @@ linters:
     - gocritic
     - gochecknoinits
     - funlen
-
-service:
-  golangci-lint-version: 1.60.x
-  prepare:
-    - make deps
-    - make generate

@@ -1,7 +1,7 @@
 //go:build wireinject
 // +build wireinject
 
-package usercontroller
+package mysqlrepo
 
 import (
 	"github.com/google/wire"
