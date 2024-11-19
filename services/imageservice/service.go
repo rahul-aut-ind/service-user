@@ -102,7 +102,7 @@ func (s *Service) GetByUserIDImageID(uID, imageID string) (*models.ImageResponse
 }
 
 func (s *Service) DeleteByUserIDImageID(uID, imageID string) error {
-	return s.parallelDeleteTasks(func() error { return s.s3.Delete(uID, imageID) }, func() error { return s.db.DeleteImage(uID, imageID) })
+	return s.parallelDeleteTasks(func() error { return s.s3.Delete(uID, imageID+requestparser.JPGImageExtension) }, func() error { return s.db.DeleteImage(uID, imageID) })
 }
 
 func (s *Service) DeleteAllByUserID(uID string) error {
