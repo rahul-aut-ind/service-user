@@ -3,6 +3,7 @@ package dynamorepo
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -241,8 +242,23 @@ func (d *DynamoDBRepo) DeleteAllImages(uID string) error {
 		return err
 	}
 
+	var wg sync.WaitGroup
+	errChan := make(chan error, len(imageResults))
+
 	for _, item := range imageResults {
-		err := d.softDeleteItem(&item)
+		wg.Add(1)
+		go func(item models.UserImage) {
+			defer wg.Done()
+			err := d.softDeleteItem(&item)
+			if err != nil {
+				errChan <- err
+			}
+		}(item)
+	}
+	wg.Wait()
+	close(errChan)
+
+	for err := range errChan {
 		if err != nil {
 			d.Log.Errorf("error deleting images of user %s in DB. error :: %v", uID, err)
 			return err
@@ -251,26 +267,3 @@ func (d *DynamoDBRepo) DeleteAllImages(uID string) error {
 
 	return nil
 }
-
-// var wg sync.WaitGroup
-//	errChan := make(chan error, len(imageResults))
-//
-//	for _, item := range imageResults {
-//		wg.Add(1)
-//		go func(item models.UserImage) {
-//			defer wg.Done()
-//			err := d.softDeleteItem(&item)
-//			if err != nil {
-//				errChan <- err
-//			}
-//		}(item)
-//	}
-//	wg.Done()
-//	close(errChan)
-//
-//	for err := range errChan {
-//		if err != nil {
-//			d.Log.Errorf("error deleting images of user %s in DB. error :: %v", uID, err)
-//			return err
-//		}
-//	}

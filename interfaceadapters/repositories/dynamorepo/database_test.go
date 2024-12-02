@@ -243,6 +243,16 @@ func (s *RepoTestSuite) TestShouldDeleteAllImage() {
 	}
 	err = s.repo.AddImage(createReq2)
 
+	createReq3 := &models.UserImage{
+		IsDeleted: false,
+		UserID:    "897",
+		ImageID:   "328a68e4-a10a-11ef-ba63-c689f470ad55",
+		Path:      "story-image/897/328a68e4-a10a-11ef-ba63-c689f470ad55.jpg",
+		TakenAt:   time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	err = s.repo.AddImage(createReq3)
+
 	err = s.repo.DeleteAllImages("897")
 	assert.Nil(s.T(), err)
 
