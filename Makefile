@@ -32,8 +32,6 @@ local-setup:
 local-docker-up:
 	docker start mysql-server redis-stack aws-localstack
 	echo "waiting for mysql, redis, S3 & dynamoDB to be ready..."
-	sleep 10s
-	docker start user-service
 
 local-docker-down:
 	docker stop mysql-server redis-stack aws-localstack
@@ -44,7 +42,7 @@ local-docker-delete-service:
 
 local-redeploy: local-docker-delete-service run-service
 
-local-deploy: local-setup run-service
+local-deploy: local-docker-up run-service
 
 service-logs:
 	docker logs user-service -f --tail 100
@@ -53,7 +51,7 @@ localstack-up:
 	docker run --name=aws-localstack -d -p 4566:4566 -p 4571:4571 localstack/localstack
 	echo "localstack initialized"
 
-local-aws-setup: localstack-up local-aws-setup local-dynamo-setup local-s3-setup
+local-aws-setup: localstack-up local-aws-configure local-dynamo-setup local-s3-setup
 
 local-dynamo-setup:
 	aws --endpoint-url=http://localhost:4566 dynamodb create-table \
@@ -74,7 +72,7 @@ local-dynamo-setup:
 local-s3-setup:
 	aws --endpoint-url=http://localhost:4566 s3 mb s3://user-images
 
-local-aws-setup:
+local-aws-configure:
 	aws configure set aws_access_key_id admin
 	sleep 1s
 	aws configure set aws_secret_access_key password
