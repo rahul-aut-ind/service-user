@@ -48,7 +48,7 @@ func (s *RepoTestSuite) TestShouldSaveImage() {
 		TakenAt:   time.Now(),
 		UpdatedAt: time.Now(),
 	}
-	err := s.repo.CreateOrUpdateImage(createReq)
+	err := s.repo.AddImage(createReq)
 
 	result, _ := s.repo.GetImage("123", "128a68e4-a10a-11ef-ba63-c689f470ad55")
 	assert.Nil(s.T(), err)
@@ -64,7 +64,7 @@ func (s *RepoTestSuite) TestShouldNotSaveImageWithoutUserID() {
 		TakenAt:   time.Now(),
 		UpdatedAt: time.Now(),
 	}
-	err := s.repo.CreateOrUpdateImage(createReqWithoutUserID)
+	err := s.repo.AddImage(createReqWithoutUserID)
 
 	assert.NotNil(s.T(), err)
 }
@@ -78,60 +78,9 @@ func (s *RepoTestSuite) TestShouldNotSaveImageWithoutImageID() {
 		TakenAt:   time.Now(),
 		UpdatedAt: time.Now(),
 	}
-	err := s.repo.CreateOrUpdateImage(createReqWithoutImageID)
+	err := s.repo.AddImage(createReqWithoutImageID)
 
 	assert.NotNil(s.T(), err)
-}
-
-func (s *RepoTestSuite) TestShouldDeleteImage() {
-
-	createReq := &models.UserImage{
-		IsDeleted: false,
-		UserID:    "123",
-		ImageID:   "128a68e4-a10a-11ef-ba63-c689f470ad55",
-		Path:      "story-image/123/128a68e4-a10a-11ef-ba63-c689f470ad55.jpg",
-		TakenAt:   time.Now(),
-		UpdatedAt: time.Now(),
-	}
-	err := s.repo.CreateOrUpdateImage(createReq)
-
-	err = s.repo.DeleteImage("123", "128a68e4-a10a-11ef-ba63-c689f470ad55")
-	assert.Nil(s.T(), err)
-
-	_, err = s.repo.GetImage("123", "128a68e4-a10a-11ef-ba63-c689f470ad55")
-	assert.NotNil(s.T(), err)
-	assert.Equal(s.T(), "image not found", err.Error())
-}
-
-func (s *RepoTestSuite) TestShouldDeleteAllImage() {
-
-	createReq := &models.UserImage{
-		IsDeleted: false,
-		UserID:    "123",
-		ImageID:   "128a68e4-a10a-11ef-ba63-c689f470ad55",
-		Path:      "story-image/123/128a68e4-a10a-11ef-ba63-c689f470ad55.jpg",
-		TakenAt:   time.Now(),
-		UpdatedAt: time.Now(),
-	}
-	err := s.repo.CreateOrUpdateImage(createReq)
-
-	err = s.repo.DeleteAllImages("123")
-	assert.Nil(s.T(), err)
-
-	_, err = s.repo.GetImage("123", "128a68e4-a10a-11ef-ba63-c689f470ad55")
-	assert.NotNil(s.T(), err)
-	assert.Equal(s.T(), "image not found", err.Error())
-}
-
-func (s *RepoTestSuite) TestShouldNotDeleteImageIfNotExist() {
-
-	err := s.repo.DeleteImage("345", "128a68e4-a10a-11ef-ba63-c689f470ad55")
-	assert.NotNil(s.T(), err)
-	assert.Equal(s.T(), "image not found", err.Error())
-
-	_, err = s.repo.GetImage("345", "128a68e4-a10a-11ef-ba63-c689f470ad55")
-	assert.NotNil(s.T(), err)
-	assert.Equal(s.T(), "image not found", err.Error())
 }
 
 func (s *RepoTestSuite) TestShouldGetImage() {
@@ -144,7 +93,7 @@ func (s *RepoTestSuite) TestShouldGetImage() {
 		TakenAt:   time.Now(),
 		UpdatedAt: time.Now(),
 	}
-	err := s.repo.CreateOrUpdateImage(createReq)
+	err := s.repo.AddImage(createReq)
 
 	result, _ := s.repo.GetImage("123", "128a68e4-a10a-11ef-ba63-c689f470ad55")
 	assert.Nil(s.T(), err)
@@ -171,7 +120,7 @@ func (s *RepoTestSuite) TestShouldGetAllImagePaginated() {
 		TakenAt:   todayTime,
 		UpdatedAt: todayTime,
 	}
-	err := s.repo.CreateOrUpdateImage(createReq1)
+	err := s.repo.AddImage(createReq1)
 
 	createReq2 := &models.UserImage{
 		IsDeleted: false,
@@ -181,7 +130,7 @@ func (s *RepoTestSuite) TestShouldGetAllImagePaginated() {
 		TakenAt:   yesterdayTime,
 		UpdatedAt: yesterdayTime,
 	}
-	err = s.repo.CreateOrUpdateImage(createReq2)
+	err = s.repo.AddImage(createReq2)
 
 	getReq1 := models.PaginatedInput{
 		UserID:           "999",
@@ -239,4 +188,79 @@ func (s *RepoTestSuite) TestShouldNotGetAllImagePaginatedIfNotExist() {
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), 0, len(data.UserImages))
 	assert.Equal(s.T(), 0, len(data.Page.LastEvaluatedKey))
+}
+
+func (s *RepoTestSuite) TestShouldDeleteImage() {
+
+	createReq := &models.UserImage{
+		IsDeleted: false,
+		UserID:    "123",
+		ImageID:   "128a68e4-a10a-11ef-ba63-c689f470ad55",
+		Path:      "story-image/123/128a68e4-a10a-11ef-ba63-c689f470ad55.jpg",
+		TakenAt:   time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	err := s.repo.AddImage(createReq)
+
+	err = s.repo.DeleteImage("123", "128a68e4-a10a-11ef-ba63-c689f470ad55")
+	assert.Nil(s.T(), err)
+
+	_, err = s.repo.GetImage("123", "128a68e4-a10a-11ef-ba63-c689f470ad55")
+	assert.NotNil(s.T(), err)
+	assert.Equal(s.T(), "image not found", err.Error())
+}
+
+func (s *RepoTestSuite) TestShouldNotDeleteImageIfNotExist() {
+
+	err := s.repo.DeleteImage("345", "128a68e4-a10a-11ef-ba63-c689f470ad55")
+	assert.NotNil(s.T(), err)
+	assert.Equal(s.T(), "image not found", err.Error())
+
+	_, err = s.repo.GetImage("345", "128a68e4-a10a-11ef-ba63-c689f470ad55")
+	assert.NotNil(s.T(), err)
+	assert.Equal(s.T(), "image not found", err.Error())
+}
+
+func (s *RepoTestSuite) TestShouldDeleteAllImage() {
+
+	createReq1 := &models.UserImage{
+		IsDeleted: false,
+		UserID:    "897",
+		ImageID:   "128a68e4-a10a-11ef-ba63-c689f470ad55",
+		Path:      "story-image/897/128a68e4-a10a-11ef-ba63-c689f470ad55.jpg",
+		TakenAt:   time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	err := s.repo.AddImage(createReq1)
+
+	createReq2 := &models.UserImage{
+		IsDeleted: false,
+		UserID:    "897",
+		ImageID:   "228a68e4-a10a-11ef-ba63-c689f470ad55",
+		Path:      "story-image/897/228a68e4-a10a-11ef-ba63-c689f470ad55.jpg",
+		TakenAt:   time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	err = s.repo.AddImage(createReq2)
+
+	createReq3 := &models.UserImage{
+		IsDeleted: false,
+		UserID:    "897",
+		ImageID:   "328a68e4-a10a-11ef-ba63-c689f470ad55",
+		Path:      "story-image/897/328a68e4-a10a-11ef-ba63-c689f470ad55.jpg",
+		TakenAt:   time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	err = s.repo.AddImage(createReq3)
+
+	err = s.repo.DeleteAllImages("897")
+	assert.Nil(s.T(), err)
+
+	_, err = s.repo.GetImage("897", "128a68e4-a10a-11ef-ba63-c689f470ad55")
+	assert.NotNil(s.T(), err)
+	assert.Equal(s.T(), "image not found", err.Error())
+
+	_, err = s.repo.GetImage("897", "228a68e4-a10a-11ef-ba63-c689f470ad55")
+	assert.NotNil(s.T(), err)
+	assert.Equal(s.T(), "image not found", err.Error())
 }

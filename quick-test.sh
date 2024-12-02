@@ -52,6 +52,16 @@ echo "\nDELETE response below"
 curl -X DELETE "localhost:8080/api/v1/user-image/$id" -H "x-id-token:something" -H "x-user-id: 11"
 echo "\nGET response below"
 curl "localhost:8080/api/v1/user-image/$id" -H "x-id-token:something" -H "x-user-id: 11"
+echo "\n adding an user image\n"
+response=$(curl -X POST 'localhost:8080/api/v1/user-image' \
+           --header 'x-user-id: 11' \
+           --header 'x-id-token: something' \
+           --form 'metadata="{\"takenAt\": \"2024-11-12T00:00:00Z\"}"' \
+           --form 'image=@"/Users/rahulupadhyay/Downloads/coins.jpg"')
+echo "\nPOST response below"
+echo "$response"
+id=$(echo "$response" | jq -r '.id')
+echo "\nNew image ID is: $id"
 echo "\nDELETEALL response below"
 curl -X DELETE "localhost:8080/api/v1/user-image" -H "x-id-token:something" -H "x-user-id: 11"
 echo "\nGET response below"

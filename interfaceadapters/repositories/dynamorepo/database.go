@@ -3,6 +3,7 @@ package dynamorepo
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -18,12 +19,13 @@ import (
 
 type (
 	DataHandler interface {
-		CreateOrUpdateImage(p *models.UserImage) error
+		AddImage(p *models.UserImage) error
 		GetAllImagesPaginated(req models.PaginatedInput) (*models.UserImageResult, error)
-		getAllImages(uID string) ([]models.UserImage, error)
 		GetImage(uID, imgID string) (*models.UserImage, error)
 		DeleteImage(uID, imgID string) error
 		DeleteAllImages(uID string) error
+		getAllItems(uID string) ([]models.UserImage, error)
+		softDeleteItem(p *models.UserImage) error
 	}
 
 	DynamoDBRepo struct {
@@ -48,7 +50,7 @@ func createClient(cfg *aws.Config) *dynamodb.Client {
 	return dynamodb.NewFromConfig(*cfg)
 }
 
-func (d *DynamoDBRepo) CreateOrUpdateImage(req *models.UserImage) error {
+func (d *DynamoDBRepo) AddImage(req *models.UserImage) error {
 	item, err := attributevalue.MarshalMap(req)
 	if err != nil {
 		d.Log.Error("error marshaling input", err)
@@ -105,9 +107,7 @@ func (d *DynamoDBRepo) DeleteImage(uID, imageID string) error {
 		return err
 	}
 
-	imageResult.IsDeleted = true
-	imageResult.UpdatedAt = time.Now()
-	err = d.CreateOrUpdateImage(imageResult)
+	err = d.softDeleteItem(imageResult)
 	if err != nil {
 		d.Log.Errorf("error deleting image %s of user %s in DB. error :: %v", imageID, uID, err)
 		return err
@@ -172,46 +172,93 @@ func (d *DynamoDBRepo) GetAllImagesPaginated(req models.PaginatedInput) (*models
 	return response, nil
 }
 
-func (d *DynamoDBRepo) getAllImages(uID string) ([]models.UserImage, error) {
-	input := &dynamodb.QueryInput{
-		TableName:              &d.TableName,
-		IndexName:              aws.String("UserIDTakenAtIndex"),
-		KeyConditionExpression: aws.String("UserID = :uID"),
-		FilterExpression:       aws.String("IsDeleted = :isDeleted"),
-		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":uID":       &types.AttributeValueMemberS{Value: uID},
-			":isDeleted": &types.AttributeValueMemberBOOL{Value: false},
+func (d *DynamoDBRepo) getAllItems(uID string) ([]models.UserImage, error) {
+	var lastEvaluatedKey map[string]types.AttributeValue
+	var allImages []models.UserImage
+
+	for {
+		var imageResults []models.UserImage
+		input := &dynamodb.QueryInput{
+			TableName:              &d.TableName,
+			IndexName:              aws.String("UserIDTakenAtIndex"),
+			KeyConditionExpression: aws.String("UserID = :uID"),
+			FilterExpression:       aws.String("IsDeleted = :isDeleted"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":uID":       &types.AttributeValueMemberS{Value: uID},
+				":isDeleted": &types.AttributeValueMemberBOOL{Value: false},
+			},
+			ScanIndexForward:  aws.Bool(false),
+			ExclusiveStartKey: lastEvaluatedKey,
+		}
+
+		result, err := d.Client.Query(context.Background(), input)
+		if err != nil {
+			d.Log.Error("error querying db", err)
+			return nil, errors.New(errors.ErrCodeGeneric, fmt.Errorf("error querying db"))
+		}
+
+		err = attributevalue.UnmarshalListOfMaps(result.Items, &imageResults)
+		if err != nil {
+			d.Log.Error("error unmarshaling db response", err)
+			return nil, errors.New(errors.ErrCodeGeneric, fmt.Errorf("error unmarshaling db response"))
+		}
+		allImages = append(allImages, imageResults...)
+
+		if result.LastEvaluatedKey == nil {
+			break
+		}
+
+		lastEvaluatedKey = result.LastEvaluatedKey
+	}
+
+	return allImages, nil
+}
+
+func (d *DynamoDBRepo) softDeleteItem(req *models.UserImage) error {
+
+	_, err := d.Client.UpdateItem(context.Background(), &dynamodb.UpdateItemInput{
+		TableName: &d.TableName,
+		Key: map[string]types.AttributeValue{
+			HashKey:  &types.AttributeValueMemberS{Value: req.UserID},
+			RangeKey: &types.AttributeValueMemberS{Value: req.ImageID},
 		},
-		ScanIndexForward: aws.Bool(false),
-	}
-
-	result, err := d.Client.Query(context.Background(), input)
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":isDeleted": &types.AttributeValueMemberBOOL{Value: true},
+			":updatedAt": &types.AttributeValueMemberS{Value: time.Now().String()},
+		},
+		UpdateExpression: aws.String("SET IsDeleted = :isDeleted, UpdatedAt = :updatedAt"),
+	})
 	if err != nil {
-		d.Log.Error("error querying db", err)
-		return nil, errors.New(errors.ErrCodeGeneric, fmt.Errorf("error querying db"))
+		d.Log.Errorf("error persisting scan %s of user %s. error %v", req.ImageID, req.UserID, err)
+		return errors.New(errors.ErrCodeGeneric, fmt.Errorf("error processing image"))
 	}
 
-	var imageResults []models.UserImage
-	err = attributevalue.UnmarshalListOfMaps(result.Items, &imageResults)
-	if err != nil {
-		d.Log.Error("error unmarshaling db response", err)
-		return nil, errors.New(errors.ErrCodeGeneric, fmt.Errorf("error unmarshaling db response"))
-	}
-
-	return imageResults, nil
+	return nil
 }
 
 func (d *DynamoDBRepo) DeleteAllImages(uID string) error {
-	imageResults, err := d.getAllImages(uID)
+	imageResults, err := d.getAllItems(uID)
 	if err != nil {
 		return err
 	}
 
-	for i := range imageResults {
-		imageResult := &imageResults[i]
-		imageResult.IsDeleted = true
-		imageResult.UpdatedAt = time.Now()
-		err := d.CreateOrUpdateImage(imageResult)
+	var wg sync.WaitGroup
+	errChan := make(chan error, len(imageResults))
+
+	for _, item := range imageResults {
+		wg.Add(1)
+		go func(item models.UserImage) {
+			defer wg.Done()
+			err := d.softDeleteItem(&item)
+			if err != nil {
+				errChan <- err
+			}
+		}(item)
+	}
+	wg.Wait()
+	close(errChan)
+
+	for err := range errChan {
 		if err != nil {
 			d.Log.Errorf("error deleting images of user %s in DB. error :: %v", uID, err)
 			return err

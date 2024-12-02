@@ -56,7 +56,7 @@ func (s *Service) SaveUserImage(uID string, req *requestparser.MultiPartData) (*
 		UpdatedAt: time.Now(),
 	}
 
-	err = s.db.CreateOrUpdateImage(ui)
+	err = s.db.AddImage(ui)
 	if err != nil {
 		return nil, err
 	}
